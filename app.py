@@ -30,10 +30,58 @@ WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 WEATHER_BASE_URL = "http://api.weatherapi.com/v1"
 NWS_BASE_URL = "https://api.weather.gov"  # Free National Weather Service API
 
+# Temperature threshold for climate alerts (lowered to 1°F for testing)
+TEMP_THRESHOLD = 1  # degrees Fahrenheit above average
+
 @app.route('/')
 def index():
     """Serve the main web interface"""
     return render_template('index.html')
+
+def send_welcome_email(email, location):
+    """Send welcome email to new subscriber"""
+    try:
+        subject = "🌍 Welcome to the Climate Movement - IT'S TOO HOT!"
+        body = f"""
+        Welcome to the Climate Movement!
+        
+        Thank you for joining the "IT'S TOO HOT!" climate awareness campaign. 
+        You're now part of a growing community of activists working to raise 
+        awareness about climate change.
+        
+        What happens next:
+        - We'll monitor temperatures in your area ({location})
+        - When temperatures are {TEMP_THRESHOLD}°F+ hotter than historical averages, you'll get an alert
+        - Wear your "IT'S TOO HOT!" shirt on those days to raise awareness
+        - Start conversations about climate change with friends and family
+        
+        Your "IT'S TOO HOT!" shirt is your climate activism uniform. When you wear it 
+        on climate anomaly days, you're showing the world that climate change is real 
+        and happening now.
+        
+        Ready to make a difference? Share this campaign with your friends:
+        https://its2hot.org
+        
+        Together, we can raise awareness and drive climate action!
+        
+        #TooHot #ClimateAction #ClimateChange
+        
+        ---
+        To unsubscribe, reply to this email with "unsubscribe"
+        """
+        
+        msg = Message(
+            subject=subject,
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[email],
+            body=body
+        )
+        
+        mail.send(msg)
+        print(f"Welcome email sent to {email}")
+        
+    except Exception as e:
+        print(f"Failed to send welcome email to {email}: {e}")
 
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
@@ -54,12 +102,20 @@ def subscribe():
         return jsonify({'error': 'Email already subscribed'}), 409
     
     # Add subscriber
+    location = data.get('location', 'auto')
     subscriber = {
         'email': email,
         'subscribed_at': datetime.now().isoformat(),
-        'location': data.get('location', 'auto')  # Default to auto-detect
+        'location': location
     }
     subscribers.append(subscriber)
+    
+    # Send welcome email
+    try:
+        send_welcome_email(email, location)
+    except Exception as e:
+        print(f"Failed to send welcome email: {e}")
+        # Don't fail the subscription if welcome email fails
     
     return jsonify({
         'message': 'Successfully subscribed to temperature notifications',
@@ -131,15 +187,16 @@ def check_temperatures():
             # In production, you'd get actual historical data
             avg_temp = 85  # Example average temperature
             
-            # Check if current temp is 10+ degrees hotter than average
-            if current_temp >= avg_temp + 10:
+            # Check if current temp is TEMP_THRESHOLD+ degrees hotter than average
+            if current_temp >= avg_temp + TEMP_THRESHOLD:
                 # Send notification
                 send_notification(subscriber['email'], location, current_temp, avg_temp)
                 notifications_sent.append({
                     'email': subscriber['email'],
                     'location': location,
                     'current_temp': current_temp,
-                    'avg_temp': avg_temp
+                    'avg_temp': avg_temp,
+                    'threshold': TEMP_THRESHOLD
                 })
                 
         except Exception as e:
@@ -149,6 +206,7 @@ def check_temperatures():
     return jsonify({
         'message': f'Processed {len(subscribers)} subscribers',
         'notifications_sent': len(notifications_sent),
+        'threshold': TEMP_THRESHOLD,
         'details': notifications_sent
     })
 
@@ -164,7 +222,7 @@ def send_notification(email, location, current_temp, avg_temp):
         Average Temperature: {avg_temp}°F
         Climate Anomaly: +{current_temp - avg_temp}°F above normal
         
-        This is a clear sign of climate change in action. Temperatures are significantly 
+        This is a clear sign of climate change in action. Temperatures are {TEMP_THRESHOLD}°F+ 
         higher than historical averages for this time of year.
         
         ACTION REQUIRED:

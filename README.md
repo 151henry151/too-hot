@@ -1,6 +1,6 @@
 # Too Hot - Climate Awareness Campaign
 
-> **When temperatures are 10°F hotter than normal, wear your "IT'S TOO HOT!" shirt and start conversations about climate change.**
+> **When temperatures are 1°F hotter than normal, wear your "IT'S TOO HOT!" shirt and start conversations about climate change.**
 
 ## 🌍 Quick Overview
 
@@ -9,7 +9,7 @@
 ### 🎯 What It Does
 
 - **Temperature Monitoring**: Checks your local weather against historical averages
-- **Smart Alerts**: Notifies you when temperatures are 10°F+ hotter than normal
+- **Smart Alerts**: Notifies you when temperatures are 1°F+ hotter than normal
 - **Climate Activism**: Encourages wearing "IT'S TOO HOT!" shirts during extreme heat
 - **Community Building**: Connects people through shared climate awareness
 
