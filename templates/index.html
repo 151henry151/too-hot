@@ -24,6 +24,16 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
+        .tshirt-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .tshirt-container {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -157,10 +167,10 @@
                     <i class="fas fa-tshirt mr-2"></i>
                     THE "IT'S TOO HOT!" SHIRT
                 </h3>
-                <div class="mb-6">
+                <div class="mb-6 tshirt-container">
                     <img src="{{ url_for('static', filename='img/tshirt.png') }}" 
                          alt="IT'S TOO HOT! T-Shirt Design" 
-                         class="max-w-md mx-auto rounded-lg shadow-lg">
+                         class="tshirt-image w-full max-w-md mx-auto rounded-lg shadow-lg object-contain">
                 </div>
                 <p class="text-gray-700 mb-4">
                     Wear this shirt on days when temperatures are 10°F+ hotter than the historical average for that day to raise awareness about climate change.
