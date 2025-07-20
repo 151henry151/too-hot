@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Too Hot - Climate Awareness Campaign</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .temperature-icon {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-thermometer-half text-3xl temperature-icon"></i>
+                    <h1 class="text-3xl font-bold" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">TOO HOT</h1>
+                </div>
+                <p class="text-lg opacity-90" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">CLIMATE AWARENESS CAMPAIGN</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Campaign Image -->
+        <div class="mb-12">
+            <img src="{{ url_for('static', filename='img/climate_protest_flashmob.png') }}" 
+                 alt="Climate Protest Flashmob - It's Too Hot!" 
+                 class="w-full rounded-lg shadow-xl">
+            <p class="text-center text-gray-600 mt-4 text-sm">
+                <i class="fas fa-users mr-2"></i>
+                Join the movement - Wear your "IT'S TOO HOT!" shirt on climate anomaly days
+            </p>
+        </div>
+        
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                Climate Action Starts Here
+            </h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Join the movement to raise awareness about climate change. Get notified when temperatures 
+                are 10°F hotter than average - then wear your "IT'S TOO HOT!" shirt and show the world 
+                that climate change is real and happening now.
+            </p>
+        </div>
+
+        <!-- Subscription Form -->
+        <div class="max-w-md mx-auto mb-12">
+            <div class="bg-white rounded-lg shadow-lg p-8 card-hover">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-6 text-center" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">
+                    <i class="fas fa-bell text-orange-500 mr-2"></i>
+                    JOIN THE CLIMATE MOVEMENT
+                </h3>
+                
+                <form id="subscriptionForm" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="your.email@example.com"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                            Location (Optional)
+                        </label>
+                        <input 
+                            type="text" 
+                            id="location" 
+                            name="location" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="City, State (auto-detect if left blank)"
+                        >
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-black text-white font-bold py-4 px-8 rounded-lg hover:bg-gray-800 transition-all duration-200 transform hover:scale-105 border-2 border-white"
+                        style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;"
+                    >
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        JOIN THE MOVEMENT
+                    </button>
+                </form>
+                
+                <div id="message" class="mt-4 p-4 rounded-lg hidden"></div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+            <div class="bg-white rounded-lg shadow-lg p-6 card-hover text-center">
+                <div class="text-4xl text-blue-500 mb-4">
+                    <i class="fas fa-thermometer-half"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Climate Data Tracking</h3>
+                <p class="text-gray-600">
+                    We monitor real-time temperature data and compare it to historical averages to identify when temperatures are 10°F+ hotter than normal.
+                </p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6 card-hover text-center">
+                <div class="text-4xl text-green-500 mb-4">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Action Alerts</h3>
+                <p class="text-gray-600">
+                    Get notified when temperatures are 10°F+ hotter than average so you can take action and raise awareness.
+                </p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6 card-hover text-center">
+                <div class="text-4xl text-purple-500 mb-4">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Mobile Activism</h3>
+                <p class="text-gray-600">
+                    iPhone app coming soon for instant climate alerts and on-the-go activism.
+                </p>
+            </div>
+        </div>
+
+        
+
+        <!-- T-Shirt Design Section -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-2 border-black">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-6" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">
+                    <i class="fas fa-tshirt mr-2"></i>
+                    THE "IT'S TOO HOT!" SHIRT
+                </h3>
+                <div class="mb-6">
+                    <img src="{{ url_for('static', filename='img/tshirt.png') }}" 
+                         alt="IT'S TOO HOT! T-Shirt Design" 
+                         class="max-w-md mx-auto rounded-lg shadow-lg">
+                </div>
+                <p class="text-gray-700 mb-4">
+                    Wear this shirt on days when temperatures are 10°F+ hotter than the historical average for that day to raise awareness about climate change.
+                </p>
+                <div class="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div>
+                        <i class="fas fa-eye text-2xl mb-2 text-black"></i>
+                        <h4 class="font-semibold">Visual Impact</h4>
+                        <p>Bold, clean design that gets attention</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-comments text-2xl mb-2 text-black"></i>
+                        <h4 class="font-semibold">Conversation Starter</h4>
+                        <p>Starts important climate discussions</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-users text-2xl mb-2 text-black"></i>
+                        <h4 class="font-semibold">Community Unity</h4>
+                        <p>Shows solidarity with climate activists</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Climate Action Section -->
+        <div class="bg-black text-white rounded-lg shadow-lg p-8 mb-8 border-2 border-white">
+            <div class="text-center text-white">
+                <h3 class="text-2xl font-bold mb-4" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">
+                    <i class="fas fa-globe-americas mr-2"></i>
+                    WHY THIS MATTERS
+                </h3>
+                <p class="text-lg mb-6">
+                    Climate change is happening faster than predicted. When temperatures are 10°F+ hotter than the historical average for that day, 
+                    it's a clear sign of climate disruption. Wearing your "IT'S TOO HOT!" shirt on these days 
+                    helps raise awareness and start conversations about climate action.
+                </p>
+                <div class="grid md:grid-cols-3 gap-6 text-sm">
+                    <div>
+                        <i class="fas fa-chart-line text-2xl mb-2"></i>
+                        <h4 class="font-semibold">Data-Driven</h4>
+                        <p>Real climate data, not just weather</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-users text-2xl mb-2"></i>
+                        <h4 class="font-semibold">Community Action</h4>
+                        <p>Join thousands of climate activists</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-bullhorn text-2xl mb-2"></i>
+                        <h4 class="font-semibold">Raise Awareness</h4>
+                        <p>Start conversations about climate change</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <!-- Unsubscribe Link -->
+    <div class="text-center py-4">
+        <a href="#" id="unsubscribeLink" class="text-gray-400 text-sm hover:text-gray-600 transition-colors">
+            unsubscribe
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-400">
+                &copy; 2024 Too Hot - Climate Awareness Campaign. Join the movement for climate action.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Subscription form handling
+        document.getElementById('subscriptionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const location = document.getElementById('location').value;
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        location: location || 'auto'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-700';
+                    messageDiv.textContent = data.message;
+                    document.getElementById('subscriptionForm').reset();
+                } else {
+                    messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-700';
+                    messageDiv.textContent = data.error;
+                }
+                
+                messageDiv.classList.remove('hidden');
+                
+                // Hide message after 5 seconds
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 5000);
+                
+            } catch (error) {
+                messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-700';
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.classList.remove('hidden');
+            }
+        });
+
+        // Unsubscribe link handling
+        document.getElementById('unsubscribeLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const email = prompt('Enter your email address to unsubscribe:');
+            if (!email) return;
+            
+            try {
+                const response = await fetch('/api/unsubscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Successfully unsubscribed from temperature notifications.');
+                } else {
+                    alert(data.error || 'An error occurred while unsubscribing.');
+                }
+                
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html> 
