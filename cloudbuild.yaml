@@ -24,7 +24,7 @@ steps:
       - '--port'
       - '5000'
       - '--memory'
-      - '512Mi'
+      - '1Gi'
       - '--cpu'
       - '1'
       - '--max-instances'
@@ -47,7 +47,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _MAIL_USERNAME: 'your-email@gmail.com'
-  _MAIL_PASSWORD: 'your-app-password'
-  _WEATHER_API_KEY: 'your-weather-api-key'
+  _MAIL_USERNAME: 'istoohotbytendegrees@gmail.com'
+  _MAIL_PASSWORD: 'ggpi unop meya zdvr'
+  _WEATHER_API_KEY: '06f86b6acb6a4a9785d04941252007'
   _SECRET_KEY: 'your-secret-key-here' 
