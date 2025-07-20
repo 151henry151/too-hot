@@ -49,6 +49,10 @@ too-hot/
 │   └── js/                  # Frontend interactions
 ├── requirements.txt          # Python dependencies
 ├── .env                     # Environment configuration
+├── Dockerfile               # Docker container configuration
+├── docker-compose.yml       # Local development setup
+├── cloudbuild.yaml          # GCP Cloud Build configuration
+├── deploy.sh                # Automated deployment script
 └── README.md               # This file
 ```
 
@@ -349,7 +353,65 @@ curl http://localhost:5000/api/check-temperatures
 
 ## Deployment
 
-### Web Application
+### Docker Deployment
+
+#### Local Development with Docker
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or build and run manually
+docker build -t too-hot .
+docker run -p 5000:5000 --env-file .env too-hot
+```
+
+#### Production Deployment to Google Cloud Platform
+
+1. **Prerequisites**
+   ```bash
+   # Install Google Cloud SDK
+   # https://cloud.google.com/sdk/docs/install
+   
+   # Authenticate with GCP
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+2. **Set Environment Variables**
+   ```bash
+   export MAIL_USERNAME=your-email@gmail.com
+   export MAIL_PASSWORD=your-app-password
+   export WEATHER_API_KEY=your-weather-api-key
+   ```
+
+3. **Deploy to Cloud Run**
+   ```bash
+   # Use the automated deployment script
+   ./deploy.sh
+   
+   # Or deploy manually
+   gcloud run deploy too-hot \
+     --image gcr.io/YOUR_PROJECT_ID/too-hot:latest \
+     --platform managed \
+     --region us-central1 \
+     --allow-unauthenticated \
+     --port 5000 \
+     --memory 512Mi \
+     --cpu 1 \
+     --max-instances 10 \
+     --set-env-vars FLASK_ENV=production \
+     --set-env-vars MAIL_USERNAME="$MAIL_USERNAME" \
+     --set-env-vars MAIL_PASSWORD="$MAIL_PASSWORD" \
+     --set-env-vars WEATHER_API_KEY="$WEATHER_API_KEY"
+   ```
+
+#### Cloud Build Deployment
+```bash
+# Deploy using Cloud Build
+gcloud builds submit --config cloudbuild.yaml
+```
+
+### Traditional Deployment
 ```bash
 # Production deployment
 gunicorn -w 4 -b 0.0.0.0:5000 app:app

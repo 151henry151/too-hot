@@ -1,0 +1,50 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/too-hot:$COMMIT_SHA', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/too-hot:$COMMIT_SHA']
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'too-hot'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/too-hot:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '5000'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'FLASK_ENV=production'
+      - '--set-env-vars'
+      - 'MAIL_USERNAME=${_MAIL_USERNAME}'
+      - '--set-env-vars'
+      - 'MAIL_PASSWORD=${_MAIL_PASSWORD}'
+      - '--set-env-vars'
+      - 'WEATHER_API_KEY=${_WEATHER_API_KEY}'
+      - '--set-env-vars'
+      - 'SECRET_KEY=${_SECRET_KEY}'
+
+images:
+  - 'gcr.io/$PROJECT_ID/too-hot:$COMMIT_SHA'
+
+substitutions:
+  _MAIL_USERNAME: 'your-email@gmail.com'
+  _MAIL_PASSWORD: 'your-app-password'
+  _WEATHER_API_KEY: 'your-weather-api-key'
+  _SECRET_KEY: 'your-secret-key-here' 

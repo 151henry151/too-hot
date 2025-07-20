@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  too-hot-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - .:/app
+      - /app/venv
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/check-temperatures"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  too-hot-scheduler:
+    build: .
+    command: python scheduler.py
+    environment:
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    depends_on:
+      - too-hot-app 
