@@ -191,21 +191,50 @@ def shop():
     # Get product images from Printful
     product_images = get_printful_product_images()
     
-    # Product details with real images
+    # Product details with mockup images and color options
     products = {
         'tshirt': {
             'name': 'IT\'S TOO HOT! T-Shirt (Dark)',
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with white text on dark background',
             'printful_product_id': '387436926',
-            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt_text.png'))
+            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt_text.png')),
+            'colors': {
+                'black': {
+                    'name': 'Black',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-black-front-687da1fc27008.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-black-back-687da1fc275a7.png')
+                },
+                'french-navy': {
+                    'name': 'French Navy',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-french-navy-front-687da1fc26147.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-french-navy-back-687da1fc26cdc.png')
+                },
+                'anthracite': {
+                    'name': 'Anthracite',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-anthracite-front-687da1fc279c8.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-anthracite-back-687da1fc28199.png')
+                }
+            }
         },
         'tshirt_light': {
             'name': 'IT\'S TOO HOT! T-Shirt (Light)',
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with black text on light background',
             'printful_product_id': '387436861',
-            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt_text_black.png'))
+            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt_text_black.png')),
+            'colors': {
+                'white': {
+                    'name': 'White',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-white-front-687da29871c60.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-white-back-687da2987241c.png')
+                },
+                'heather-grey': {
+                    'name': 'Heather Grey',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-front-687da298707b3.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-back-687da298712d1.png')
+                }
+            }
         }
     }
     

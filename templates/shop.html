@@ -61,12 +61,25 @@
         <div class="max-w-4xl mx-auto">
             <div class="bg-white rounded-lg shadow-lg p-8 card-hover">
                 <div class="grid md:grid-cols-2 gap-8 items-center">
-                    <!-- Product Image -->
+                    <!-- Product Image Carousel -->
                     <div class="text-center">
-                        <img id="product-image" 
-                             src="{{ products.tshirt.image }}" 
-                             alt="IT'S TOO HOT! T-Shirt" 
-                             class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        <div class="relative">
+                            <!-- Main Image -->
+                            <img id="product-image" 
+                                 src="{{ products.tshirt.colors.black.front }}" 
+                                 alt="IT'S TOO HOT! T-Shirt" 
+                                 class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                            
+                            <!-- Carousel Navigation -->
+                            <div class="flex justify-center mt-4 space-x-2">
+                                <button id="view-front" class="carousel-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                                    Front
+                                </button>
+                                <button id="view-back" class="carousel-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">
+                                    Back
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Product Details -->
@@ -90,6 +103,14 @@
                                     <div class="font-semibold">Light Design</div>
                                     <div class="text-sm opacity-90">Black text on light</div>
                                 </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Color Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                            <div id="color-options" class="grid grid-cols-3 gap-3">
+                                <!-- Color options will be populated by JavaScript -->
                             </div>
                         </div>
                         
@@ -198,9 +219,128 @@
     </footer>
 
     <script>
-        // Design selection
-        let selectedDesign = 'tshirt'; // Default to dark design
+        // Product data from Flask
+        const products = {
+            tshirt: {
+                name: '{{ products.tshirt.name|safe }}',
+                description: '{{ products.tshirt.description|safe }}',
+                colors: {
+                    black: {
+                        name: 'Black',
+                        front: '{{ products.tshirt.colors.black.front }}',
+                        back: '{{ products.tshirt.colors.black.back }}'
+                    },
+                    'french-navy': {
+                        name: 'French Navy',
+                        front: '{{ products.tshirt.colors["french-navy"].front }}',
+                        back: '{{ products.tshirt.colors["french-navy"].back }}'
+                    },
+                    anthracite: {
+                        name: 'Anthracite',
+                        front: '{{ products.tshirt.colors.anthracite.front }}',
+                        back: '{{ products.tshirt.colors.anthracite.back }}'
+                    }
+                }
+            },
+            tshirt_light: {
+                name: '{{ products.tshirt_light.name|safe }}',
+                description: '{{ products.tshirt_light.description|safe }}',
+                colors: {
+                    white: {
+                        name: 'White',
+                        front: '{{ products.tshirt_light.colors.white.front }}',
+                        back: '{{ products.tshirt_light.colors.white.back }}'
+                    },
+                    'heather-grey': {
+                        name: 'Heather Grey',
+                        front: '{{ products.tshirt_light.colors["heather-grey"].front }}',
+                        back: '{{ products.tshirt_light.colors["heather-grey"].back }}'
+                    }
+                }
+            }
+        };
         
+        // State variables
+        let selectedDesign = 'tshirt'; // Default to dark design
+        let selectedColor = 'black'; // Default color
+        let selectedView = 'front'; // Default view
+        
+        // Initialize the page
+        function initializePage() {
+            updateColorOptions();
+            updateProductImage();
+        }
+        
+        // Update color options based on selected design
+        function updateColorOptions() {
+            const colorOptions = document.getElementById('color-options');
+            const currentProduct = products[selectedDesign];
+            
+            colorOptions.innerHTML = '';
+            
+            Object.keys(currentProduct.colors).forEach((colorKey, index) => {
+                const color = currentProduct.colors[colorKey];
+                const isSelected = colorKey === selectedColor;
+                
+                const colorBtn = document.createElement('button');
+                colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
+                colorBtn.innerHTML = `
+                    <div class="font-semibold">${color.name}</div>
+                `;
+                colorBtn.onclick = () => selectColor(colorKey);
+                
+                colorOptions.appendChild(colorBtn);
+            });
+        }
+        
+        // Select a color
+        function selectColor(colorKey) {
+            selectedColor = colorKey;
+            updateColorOptions();
+            updateProductImage();
+        }
+        
+        // Update product image based on current selections
+        function updateProductImage() {
+            const productImage = document.getElementById('product-image');
+            const currentProduct = products[selectedDesign];
+            const currentColor = currentProduct.colors[selectedColor];
+            
+            if (selectedView === 'front') {
+                productImage.src = currentColor.front;
+            } else {
+                productImage.src = currentColor.back;
+            }
+        }
+        
+        // Carousel navigation
+        document.getElementById('view-front').addEventListener('click', function() {
+            selectedView = 'front';
+            updateProductImage();
+            updateCarouselButtons();
+        });
+        
+        document.getElementById('view-back').addEventListener('click', function() {
+            selectedView = 'back';
+            updateProductImage();
+            updateCarouselButtons();
+        });
+        
+        // Update carousel button styles
+        function updateCarouselButtons() {
+            const frontBtn = document.getElementById('view-front');
+            const backBtn = document.getElementById('view-back');
+            
+            if (selectedView === 'front') {
+                frontBtn.className = 'carousel-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium';
+                backBtn.className = 'carousel-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium';
+            } else {
+                frontBtn.className = 'carousel-btn bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium';
+                backBtn.className = 'carousel-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium';
+            }
+        }
+        
+        // Design selection
         document.getElementById('design-dark').addEventListener('click', function() {
             // Update button styles
             document.getElementById('design-dark').classList.add('bg-gray-800', 'text-white', 'border-gray-800');
@@ -208,14 +348,17 @@
             document.getElementById('design-light').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
             document.getElementById('design-light').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
             
-            // Update product image
-            document.getElementById('product-image').src = '{{ products.tshirt.image }}';
+            selectedDesign = 'tshirt';
+            selectedColor = 'black'; // Reset to first color
+            selectedView = 'front'; // Reset to front view
             
             // Update product details
-            document.getElementById('product-name').innerHTML = '{{ products.tshirt.name|safe }}';
-            document.getElementById('product-description').innerHTML = '{{ products.tshirt.description|safe }}';
+            document.getElementById('product-name').innerHTML = products[selectedDesign].name;
+            document.getElementById('product-description').innerHTML = products[selectedDesign].description;
             
-            selectedDesign = 'tshirt';
+            updateColorOptions();
+            updateProductImage();
+            updateCarouselButtons();
         });
         
         document.getElementById('design-light').addEventListener('click', function() {
@@ -225,14 +368,17 @@
             document.getElementById('design-dark').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
             document.getElementById('design-dark').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
             
-            // Update product image
-            document.getElementById('product-image').src = '{{ products.tshirt_light.image }}';
+            selectedDesign = 'tshirt_light';
+            selectedColor = 'white'; // Reset to first color
+            selectedView = 'front'; // Reset to front view
             
             // Update product details
-            document.getElementById('product-name').innerHTML = '{{ products.tshirt_light.name|safe }}';
-            document.getElementById('product-description').innerHTML = '{{ products.tshirt_light.description|safe }}';
+            document.getElementById('product-name').innerHTML = products[selectedDesign].name;
+            document.getElementById('product-description').innerHTML = products[selectedDesign].description;
             
-            selectedDesign = 'tshirt_light';
+            updateColorOptions();
+            updateProductImage();
+            updateCarouselButtons();
         });
         
         // Quantity controls
@@ -275,7 +421,8 @@
                         amount: total,
                         quantity: quantity,
                         size: size,
-                        product_id: selectedDesign
+                        product_id: selectedDesign,
+                        color: selectedColor
                     })
                 });
                 
@@ -296,6 +443,9 @@
                 button.disabled = false;
             }
         });
+        
+        // Initialize the page when loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
     </script>
 </body>
 </html> 
