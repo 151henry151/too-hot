@@ -59,7 +59,22 @@ print(f"DEBUG: WEATHER_API_KEY = {os.getenv('WEATHER_API_KEY')[:4]}..." if os.ge
 mail = Mail(app)
 
 # --- Database Setup ---
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///too_hot.db')
+CLOUDSQL_CONNECTION_NAME = os.getenv('CLOUDSQL_CONNECTION_NAME', 'romp-family-enterprises:us-central1:too-hot-db')
+POSTGRES_USER = os.getenv('POSTGRES_USER', 'postgres')
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'TooHot2024!')
+POSTGRES_DB = os.getenv('POSTGRES_DB', 'too_hot')
+
+if os.getenv('GAE_ENV', '').startswith('standard') or os.getenv('K_SERVICE') or os.getenv('CLOUD_RUN_ENV'):
+    # Running on GCP (Cloud Run or App Engine)
+    DB_SOCKET_DIR = os.getenv('DB_SOCKET_DIR', '/cloudsql')
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f'postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@/{POSTGRES_DB}'
+        f'?host={DB_SOCKET_DIR}/{CLOUDSQL_CONNECTION_NAME}'
+    )
+else:
+    # Local dev fallback
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///too_hot.db')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
