@@ -1,0 +1,20 @@
+[
+  {
+    "id": 387436926,
+    "external_id": "687d9b71a6a987",
+    "name": "IT'S TOO HOT! White text on dark background",
+    "variants": 15,
+    "synced": 15,
+    "thumbnail_url": "https://files.cdn.printful.com/files/b2b/b2b7d35f77b17f6ba66e795f3c022b4a_preview.png",
+    "is_ignored": false
+  },
+  {
+    "id": 387436861,
+    "external_id": "687d9b18cb3889",
+    "name": "IT'S TOO HOT! Black text on light background",
+    "variants": 10,
+    "synced": 10,
+    "thumbnail_url": "https://files.cdn.printful.com/files/83f/83f32a3ff1a9ea11994b7286e25e3b7a_preview.png",
+    "is_ignored": false
+  }
+]

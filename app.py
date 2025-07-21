@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import requests
@@ -6,19 +6,27 @@ import json
 import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import paypalrestsdk
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
-# Configuration
+# Configure PayPal
+paypalrestsdk.configure({
+    "mode": os.getenv('PAYPAL_MODE', 'sandbox'),  # sandbox or live
+    "client_id": os.getenv('PAYPAL_CLIENT_ID'),
+    "client_secret": os.getenv('PAYPAL_CLIENT_SECRET')
+})
+
+# Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
 
 # Debug logging to see what environment variables are being read
 print(f"DEBUG: MAIL_USERNAME = {os.getenv('MAIL_USERNAME')}")
@@ -38,10 +46,249 @@ NWS_BASE_URL = "https://api.weather.gov"  # Free National Weather Service API
 # Temperature threshold for climate alerts (lowered to 1°F for testing)
 TEMP_THRESHOLD = 1  # degrees Fahrenheit above average
 
+# Printful API configuration
+PRINTFUL_API_KEY = os.getenv('PRINTFUL_API_KEY')
+PRINTFUL_BASE_URL = 'https://api.printful.com'
+
+def test_printful_connection():
+    """Test Printful API connection and get available products"""
+    if not PRINTFUL_API_KEY:
+        print("⚠️  Printful API key not found in environment variables")
+        return False
+    
+    headers = {
+        'Authorization': f'Bearer {PRINTFUL_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        # Test connection by getting products
+        response = requests.get(
+            f'{PRINTFUL_BASE_URL}/products',
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            products = response.json()
+            print(f"✅ Printful API connection successful!")
+            print(f"📦 Found {len(products.get('result', []))} products")
+            return True
+        elif response.status_code == 401:
+            print("❌ Printful API authentication failed. Check your token.")
+            return False
+        else:
+            print(f"❌ Printful API error ({response.status_code}): {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error connecting to Printful API: {str(e)}")
+        return False
+
 @app.route('/')
 def index():
     """Serve the main web interface"""
     return render_template('index.html')
+
+@app.route('/shop')
+def shop():
+    return render_template('shop.html')
+
+@app.route('/checkout')
+def checkout():
+    # Get product details from session or query parameters
+    product_id = request.args.get('product_id', 'tshirt')
+    quantity = int(request.args.get('quantity', 1))
+    
+    # Product details (you can customize these)
+    products = {
+        'tshirt': {
+            'name': 'IT\'S TOO HOT! T-Shirt (Dark)',
+            'price': 25.00,
+            'description': 'High-quality cotton t-shirt with white text on dark background',
+            'image': url_for('static', filename='img/tshirt.png'),
+            'printful_product_id': '387436926'  # White text on dark background
+        },
+        'tshirt_light': {
+            'name': 'IT\'S TOO HOT! T-Shirt (Light)',
+            'price': 25.00,
+            'description': 'High-quality cotton t-shirt with black text on light background',
+            'image': url_for('static', filename='img/tshirt.png'),
+            'printful_product_id': '387436861'  # Black text on light background
+        }
+    }
+    
+    product = products.get(product_id, products['tshirt'])
+    total = product['price'] * quantity
+    
+    return render_template('checkout.html', 
+                         product=product, 
+                         quantity=quantity, 
+                         total=total)
+
+@app.route('/create-payment', methods=['POST'])
+def create_payment():
+    try:
+        data = request.get_json()
+        amount = data['amount']
+        
+        # Create PayPal payment
+        payment = paypalrestsdk.Payment({
+            "intent": "sale",
+            "payer": {
+                "payment_method": "paypal"
+            },
+            "redirect_urls": {
+                "return_url": request.host_url + "payment-success",
+                "cancel_url": request.host_url + "payment-cancelled"
+            },
+            "transactions": [{
+                "item_list": {
+                    "items": [{
+                        "name": "IT'S TOO HOT! T-Shirt",
+                        "sku": "TSHIRT001",
+                        "price": str(amount),
+                        "currency": "USD",
+                        "quantity": 1
+                    }]
+                },
+                "amount": {
+                    "total": str(amount),
+                    "currency": "USD"
+                },
+                "description": "Climate awareness t-shirt purchase"
+            }]
+        })
+        
+        if payment.create():
+            # Store payment info in session for later use
+            session['payment_id'] = payment.id
+            session['order_data'] = data
+            
+            # Get approval URL
+            for link in payment.links:
+                if link.rel == "approval_url":
+                    return jsonify({
+                        'success': True,
+                        'approval_url': link.href
+                    })
+        else:
+            return jsonify({'error': payment.error}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/payment-success')
+def payment_success():
+    payment_id = request.args.get('paymentId')
+    payer_id = request.args.get('PayerID')
+    
+    if payment_id and payer_id:
+        # Execute the payment
+        payment = paypalrestsdk.Payment.find(payment_id)
+        
+        if payment.execute({"payer_id": payer_id}):
+            # Get order data from session
+            order_data = session.get('order_data', {})
+            
+            try:
+                # Create order in Printful
+                printful_order = create_printful_order(order_data)
+                
+                # Send confirmation email
+                send_order_confirmation(order_data)
+                
+                return render_template('payment_success.html', 
+                                     order_id=printful_order.get('id'))
+            except Exception as e:
+                return render_template('payment_error.html', error=str(e))
+        else:
+            return render_template('payment_error.html', error="Payment execution failed")
+    
+    return render_template('payment_error.html', error="Invalid payment data")
+
+@app.route('/payment-cancelled')
+def payment_cancelled():
+    return render_template('payment_cancelled.html')
+
+def create_printful_order(order_data):
+    """Create order in Printful using newer API"""
+    headers = {
+        'Authorization': f'Bearer {PRINTFUL_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    # Prepare order data for Printful (newer API format)
+    printful_order = {
+        'recipient': {
+            'name': order_data['customer_name'],
+            'address1': order_data['address']['line1'],
+            'city': order_data['address']['city'],
+            'state_code': order_data['address']['state'],
+            'country_code': 'US',
+            'zip': order_data['address']['postal_code']
+        },
+        'items': [{
+            'sync_product_id': order_data['product_id'],
+            'quantity': order_data['quantity']
+        }],
+        'retail_costs': {
+            'currency': 'USD',
+            'subtotal': str(order_data['total']),
+            'shipping': '5.00',
+            'tax': '0.00',
+            'total': str(float(order_data['total']) + 5.00)
+        }
+    }
+    
+    try:
+        response = requests.post(
+            f'{PRINTFUL_BASE_URL}/orders',
+            headers=headers,
+            json=printful_order
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 401:
+            raise Exception('Printful API authentication failed. Check your token.')
+        elif response.status_code == 404:
+            raise Exception('Product not found. Check your product ID.')
+        else:
+            raise Exception(f'Printful API error ({response.status_code}): {response.text}')
+            
+    except requests.exceptions.RequestException as e:
+        raise Exception(f'Network error connecting to Printful: {str(e)}')
+
+def send_order_confirmation(order_data):
+    """Send order confirmation email"""
+    try:
+        msg = Message(
+            'Order Confirmation - IT\'S TOO HOT! T-Shirt',
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[order_data['email']]
+        )
+        
+        msg.body = f"""
+        Thank you for your order!
+        
+        Order Details:
+        - Product: {order_data['product_name']}
+        - Quantity: {order_data['quantity']}
+        - Total: ${order_data['total']}
+        
+        Your order will be shipped to:
+        {order_data['customer_name']}
+        {order_data['address']['line1']}
+        {order_data['address']['city']}, {order_data['address']['state']} {order_data['address']['postal_code']}
+        
+        You'll receive tracking information once your order ships.
+        
+        Thank you for supporting climate awareness!
+        """
+        
+        mail.send(msg)
+    except Exception as e:
+        print(f"Failed to send confirmation email: {e}")
 
 def send_welcome_email(email, location):
     """Send welcome email to new subscriber"""
@@ -263,5 +510,24 @@ def get_subscribers():
         'count': len(subscribers)
     })
 
+@app.route('/api/test-printful', methods=['GET'])
+def test_printful_api():
+    """Test Printful API connection"""
+    try:
+        success = test_printful_connection()
+        return jsonify({
+            'success': success,
+            'message': 'Printful API connection test completed'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
+    # Test Printful connection on startup
+    print("🔍 Testing Printful API connection...")
+    test_printful_connection()
+    
     app.run(debug=True, host='0.0.0.0', port=5000) 
