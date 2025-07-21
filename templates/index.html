@@ -223,7 +223,24 @@
 
     <!-- Main Content -->
     <main id="main-content" class="container mx-auto px-4 py-8 relative z-10 delayed-fade-mobile">
-        <!-- Get Climate Alerts Section (moved to top) -->
+        <!-- Hero Section (moved to top) -->
+        <div class="text-center mb-12 fade-in fade-in-delay-1 relative">
+            <div class="border-2 border-white rounded-lg shadow-lg p-8 mx-auto max-w-4xl relative overflow-hidden" style="background: transparent;">
+                <!-- Person Checks Video as Section Background -->
+                <video class="section-video-bg absolute inset-0 w-full h-full object-cover z-0" autoplay muted loop playsinline>
+                    <source src="{{ url_for('static', filename='video/person_checks.mp4') }}" type="video/mp4">
+                </video>
+                <div class="relative z-10 section-fade-text" style="opacity:0; transition: opacity 4s ease;">
+                    <h2 class="text-4xl font-bold text-white mb-4 hero-text">
+                        Climate Action Starts Here
+                    </h2>
+                    <p class="text-xl text-white max-w-2xl mx-auto">
+                        Join the movement to raise awareness about climate change.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- Get The Alert Section -->
         <div class="bg-white rounded-lg shadow-lg p-6 card-hover text-center mb-8">
             <div class="text-4xl text-purple-500 mb-4">
                 <i class="fas fa-mobile-alt"></i>
@@ -250,24 +267,6 @@
                 <a href="/shop" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm flex items-center justify-center">
                     <i class="fas fa-tshirt mr-2"></i>get the shirt
                 </a>
-            </div>
-        </div>
-
-        <!-- Hero Section -->
-        <div class="text-center mb-12 fade-in fade-in-delay-1 relative">
-            <div class="border-2 border-white rounded-lg shadow-lg p-8 mx-auto max-w-4xl relative overflow-hidden" style="background: transparent;">
-                <!-- Person Checks Video as Section Background -->
-                <video class="section-video-bg absolute inset-0 w-full h-full object-cover z-0" autoplay muted loop playsinline>
-                    <source src="{{ url_for('static', filename='video/person_checks.mp4') }}" type="video/mp4">
-                </video>
-                <div class="relative z-10 section-fade-text" style="opacity:0; transition: opacity 4s ease;">
-                    <h2 class="text-4xl font-bold text-white mb-4 hero-text">
-                        Climate Action Starts Here
-                    </h2>
-                    <p class="text-xl text-white max-w-2xl mx-auto">
-                        Join the movement to raise awareness about climate change.
-                    </p>
-                </div>
             </div>
         </div>
 
