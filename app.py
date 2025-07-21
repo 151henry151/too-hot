@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session, Response
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import requests
@@ -7,6 +7,8 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import paypalrestsdk
+from functools import wraps
+import base64
 
 load_dotenv()
 
@@ -821,6 +823,122 @@ def test_printful_api():
             'success': False,
             'error': str(e)
         }), 500
+
+# --- Admin Auth Decorator ---
+def check_auth(username, password):
+    return username == 'admin' and password == 'evergreen'
+
+def authenticate():
+    return Response(
+        'Could not verify your access level for that URL.\n'
+        'You have to login with proper credentials', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
+# --- Utility: Load/Save JSON ---
+def load_json_file(filename, default=None):
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return default if default is not None else []
+
+def save_json_file(filename, data):
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=2)
+
+# --- Logging ---
+def log_event(filename, event):
+    logs = load_json_file(filename, default=[])
+    logs.append(event)
+    save_json_file(filename, logs)
+
+# --- Admin Dashboard ---
+@app.route('/admin', methods=['GET'])
+@requires_auth
+def admin_dashboard():
+    # Email subscribers (in-memory, warning: not persistent)
+    email_subs = subscribers
+    # Push subscribers
+    push_subs = load_json_file('push_subscriptions.json', default=[])
+    # Notification log
+    notif_log = load_json_file('notification_log.json', default=[])
+    # Trigger log
+    trigger_log = load_json_file('trigger_log.json', default=[])
+    return render_template('admin_dashboard.html',
+        email_subs=email_subs,
+        push_subs=push_subs,
+        notif_log=notif_log,
+        trigger_log=trigger_log)
+
+# --- Resend Welcome Email ---
+@app.route('/admin/resend-welcome', methods=['POST'])
+@requires_auth
+def admin_resend_welcome():
+    data = request.get_json()
+    email = data.get('email')
+    location = data.get('location', 'auto')
+    try:
+        send_welcome_email(email, location)
+        log_event('notification_log.json', {
+            'type': 'welcome_email', 'email': email, 'timestamp': datetime.now().isoformat()
+        })
+        return jsonify({'success': True, 'message': f'Resent welcome email to {email}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- Send Test Trigger Email ---
+@app.route('/admin/send-test-email', methods=['POST'])
+@requires_auth
+def admin_send_test_email():
+    data = request.get_json()
+    email = data.get('email')
+    try:
+        msg = Message(
+            'Test Climate Alert from IT\'S TOO HOT!',
+            recipients=[email],
+            body='This is a test climate alert email. If this were a real event, you would receive details about the temperature anomaly.'
+        )
+        mail.send(msg)
+        log_event('notification_log.json', {
+            'type': 'test_email', 'email': email, 'timestamp': datetime.now().isoformat()
+        })
+        return jsonify({'success': True, 'message': f'Test alert email sent to {email}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- Send Test Push Notification ---
+@app.route('/admin/send-test-notification', methods=['POST'])
+@requires_auth
+def admin_send_test_notification():
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    # You would implement your push notification logic here
+    # For now, just log the attempt
+    log_event('notification_log.json', {
+        'type': 'test_push', 'endpoint': endpoint, 'timestamp': datetime.now().isoformat()
+    })
+    return jsonify({'success': True, 'message': f'Test push notification sent to {endpoint}'})
+
+# --- Log App Trigger Event ---
+def log_trigger_event(event):
+    log_event('trigger_log.json', event)
+
+# --- API to get logs (for dashboard AJAX) ---
+@app.route('/admin/logs', methods=['GET'])
+@requires_auth
+def admin_get_logs():
+    notif_log = load_json_file('notification_log.json', default=[])
+    trigger_log = load_json_file('trigger_log.json', default=[])
+    return jsonify({'notification_log': notif_log, 'trigger_log': trigger_log})
 
 if __name__ == '__main__':
     # Test Printful connection on startup
