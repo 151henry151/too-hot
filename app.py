@@ -332,11 +332,6 @@ def shop():
                     'name': 'Heather Grey',
                     'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-front-687da298707b3.png'),
                     'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-back-687da298712d1.png')
-                },
-                'heather-grey-alt': {
-                    'name': 'Heather Grey (Alt)',
-                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-front-687da2b806e04.png'),
-                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-back-687da298712d1.png')
                 }
             }
         }
