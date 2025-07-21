@@ -3,6 +3,14 @@
 .env.local
 .env.production
 
+# Security and sensitive documentation
+*SECRETS*.md
+*SECURITY*.md
+*CREDENTIALS*.md
+*API_KEYS*.md
+*KEYS*.md
+*PASSWORDS*.md
+
 # Python
 __pycache__/
 *.py[cod]
