@@ -280,17 +280,10 @@
             const colorOptions = document.getElementById('color-options');
             const currentProduct = products[selectedDesign];
             
-            console.log('updateColorOptions called');
-            console.log('selectedDesign:', selectedDesign);
-            console.log('currentProduct:', currentProduct);
-            console.log('variants:', currentProduct.variants);
-            
             colorOptions.innerHTML = '';
             
             // Get available colors from variants
             const availableColors = Object.keys(currentProduct.variants || {});
-            
-            console.log('availableColors:', availableColors);
             
             if (availableColors.length === 0) {
                 console.warn('No variants found for design:', selectedDesign);
@@ -309,8 +302,6 @@
             availableColors.forEach((apiColorName) => {
                 const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase().replace(' ', '-');
                 const isSelected = displayColorKey === selectedColor;
-                
-                console.log('Creating button for:', apiColorName, '->', displayColorKey, 'selected:', isSelected);
                 
                 const colorBtn = document.createElement('button');
                 colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
@@ -335,11 +326,6 @@
             const productImage = document.getElementById('product-image');
             const currentProduct = products[selectedDesign];
             
-            console.log('updateProductImage called');
-            console.log('selectedColor:', selectedColor);
-            console.log('selectedView:', selectedView);
-            console.log('available colors:', Object.keys(currentProduct.colors || {}));
-            
             // Map our color keys back to API color names
             const colorNameMap = {
                 'french-navy': 'French Navy',
@@ -351,8 +337,6 @@
             
             const apiColorName = colorNameMap[selectedColor] || selectedColor;
             const currentColor = currentProduct.colors[selectedColor];
-            
-            console.log('currentColor:', currentColor);
             
             if (currentColor && selectedView === 'front') {
                 productImage.src = currentColor.front;
@@ -400,7 +384,17 @@
             selectedDesign = 'tshirt';
             // Reset to first available color for this design
             const availableColors = Object.keys(products[selectedDesign].variants || {});
-            selectedColor = availableColors.length > 0 ? 'black' : 'black'; // Default to black for dark design
+            if (availableColors.length > 0) {
+                // Map the first available color to its display key
+                const colorNameMap = {
+                    'French Navy': 'french-navy',
+                    'Black': 'black',
+                    'Anthracite': 'anthracite'
+                };
+                selectedColor = colorNameMap[availableColors[0]] || 'black';
+            } else {
+                selectedColor = 'black'; // Default to black for dark design
+            }
             selectedView = 'front'; // Reset to front view
             
             // Update product details
@@ -420,7 +414,16 @@
             selectedDesign = 'tshirt_light';
             // Reset to first available color for this design
             const availableColors = Object.keys(products[selectedDesign].variants || {});
-            selectedColor = availableColors.length > 0 ? 'white' : 'white'; // Default to white for light design
+            if (availableColors.length > 0) {
+                // Map the first available color to its display key
+                const colorNameMap = {
+                    'White': 'white',
+                    'Heather Grey': 'heather-grey'
+                };
+                selectedColor = colorNameMap[availableColors[0]] || 'white';
+            } else {
+                selectedColor = 'white'; // Default to white for light design
+            }
             selectedView = 'front'; // Reset to front view
             
             // Update product details
