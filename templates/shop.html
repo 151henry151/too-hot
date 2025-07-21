@@ -222,43 +222,43 @@
         // Product data from Flask
         const products = {
             tshirt: {
-                name: '{{ products.tshirt.name|safe }}',
-                description: '{{ products.tshirt.description|safe }}',
-                printful_product_id: '{{ products.tshirt.printful_product_id }}',
-                variants: {{ products.tshirt.variants|tojson|default('{}') }},
+                name: {{ products.tshirt.name|tojson|safe }},
+                description: {{ products.tshirt.description|tojson|safe }},
+                printful_product_id: {{ products.tshirt.printful_product_id|tojson|safe }},
+                variants: {{ products.tshirt.variants|tojson|safe }},
                 colors: {
                     black: {
-                        name: 'Black',
-                        front: '{{ products.tshirt.colors.black.front|default("") }}',
-                        back: '{{ products.tshirt.colors.black.back|default("") }}'
+                        name: {{ products.tshirt.colors.black.name|tojson|safe }},
+                        front: {{ products.tshirt.colors.black.front|tojson|safe }},
+                        back: {{ products.tshirt.colors.black.back|tojson|safe }}
                     },
                     'french-navy': {
-                        name: 'French Navy',
-                        front: '{{ products.tshirt.colors["french-navy"].front|default("") }}',
-                        back: '{{ products.tshirt.colors["french-navy"].back|default("") }}'
+                        name: {{ products.tshirt.colors["french-navy"].name|tojson|safe }},
+                        front: {{ products.tshirt.colors["french-navy"].front|tojson|safe }},
+                        back: {{ products.tshirt.colors["french-navy"].back|tojson|safe }}
                     },
                     anthracite: {
-                        name: 'Anthracite',
-                        front: '{{ products.tshirt.colors.anthracite.front|default("") }}',
-                        back: '{{ products.tshirt.colors.anthracite.back|default("") }}'
+                        name: {{ products.tshirt.colors.anthracite.name|tojson|safe }},
+                        front: {{ products.tshirt.colors.anthracite.front|tojson|safe }},
+                        back: {{ products.tshirt.colors.anthracite.back|tojson|safe }}
                     }
                 }
             },
             tshirt_light: {
-                name: '{{ products.tshirt_light.name|safe }}',
-                description: '{{ products.tshirt_light.description|safe }}',
-                printful_product_id: '{{ products.tshirt_light.printful_product_id }}',
-                variants: {{ products.tshirt_light.variants|tojson|default('{}') }},
+                name: {{ products.tshirt_light.name|tojson|safe }},
+                description: {{ products.tshirt_light.description|tojson|safe }},
+                printful_product_id: {{ products.tshirt_light.printful_product_id|tojson|safe }},
+                variants: {{ products.tshirt_light.variants|tojson|safe }},
                 colors: {
                     white: {
-                        name: 'White',
-                        front: '{{ products.tshirt_light.colors.white.front|default("") }}',
-                        back: '{{ products.tshirt_light.colors.white.back|default("") }}'
+                        name: {{ products.tshirt_light.colors.white.name|tojson|safe }},
+                        front: {{ products.tshirt_light.colors.white.front|tojson|safe }},
+                        back: {{ products.tshirt_light.colors.white.back|tojson|safe }}
                     },
                     'heather-grey': {
-                        name: 'Heather Grey',
-                        front: '{{ products.tshirt_light.colors["heather-grey"].front|default("") }}',
-                        back: '{{ products.tshirt_light.colors["heather-grey"].back|default("") }}'
+                        name: {{ products.tshirt_light.colors["heather-grey"].name|tojson|safe }},
+                        front: {{ products.tshirt_light.colors["heather-grey"].front|tojson|safe }},
+                        back: {{ products.tshirt_light.colors["heather-grey"].back|tojson|safe }}
                     }
                 }
             }
