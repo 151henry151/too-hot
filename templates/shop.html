@@ -229,18 +229,18 @@
                 colors: {
                     black: {
                         name: 'Black',
-                        front: '{{ products.tshirt.colors.black.front }}',
-                        back: '{{ products.tshirt.colors.black.back }}'
+                        front: '{{ products.tshirt.colors.black.front|default("") }}',
+                        back: '{{ products.tshirt.colors.black.back|default("") }}'
                     },
                     'french-navy': {
                         name: 'French Navy',
-                        front: '{{ products.tshirt.colors["french-navy"].front }}',
-                        back: '{{ products.tshirt.colors["french-navy"].back }}'
+                        front: '{{ products.tshirt.colors["french-navy"].front|default("") }}',
+                        back: '{{ products.tshirt.colors["french-navy"].back|default("") }}'
                     },
                     anthracite: {
                         name: 'Anthracite',
-                        front: '{{ products.tshirt.colors.anthracite.front }}',
-                        back: '{{ products.tshirt.colors.anthracite.back }}'
+                        front: '{{ products.tshirt.colors.anthracite.front|default("") }}',
+                        back: '{{ products.tshirt.colors.anthracite.back|default("") }}'
                     }
                 }
             },
@@ -252,18 +252,13 @@
                 colors: {
                     white: {
                         name: 'White',
-                        front: '{{ products.tshirt_light.colors.white.front }}',
-                        back: '{{ products.tshirt_light.colors.white.back }}'
+                        front: '{{ products.tshirt_light.colors.white.front|default("") }}',
+                        back: '{{ products.tshirt_light.colors.white.back|default("") }}'
                     },
                     'heather-grey': {
                         name: 'Heather Grey',
-                        front: '{{ products.tshirt_light.colors["heather-grey"].front }}',
-                        back: '{{ products.tshirt_light.colors["heather-grey"].back }}'
-                    },
-                    'heather-grey-alt': {
-                        name: 'Heather Grey (Alt)',
-                        front: '{{ products.tshirt_light.colors["heather-grey-alt"].front }}',
-                        back: '{{ products.tshirt_light.colors["heather-grey-alt"].back }}'
+                        front: '{{ products.tshirt_light.colors["heather-grey"].front|default("") }}',
+                        back: '{{ products.tshirt_light.colors["heather-grey"].back|default("") }}'
                     }
                 }
             }
