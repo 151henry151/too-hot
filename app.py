@@ -84,6 +84,103 @@ def test_printful_connection():
         print(f"❌ Error connecting to Printful API: {str(e)}")
         return False
 
+def get_printful_product_variants():
+    """Fetch actual product variants from Printful API with variant IDs"""
+    PRINTFUL_API_KEY = os.getenv('PRINTFUL_API_KEY')
+    PRINTFUL_BASE_URL = 'https://api.printful.com'
+    
+    if not PRINTFUL_API_KEY:
+        print("❌ Printful API key not found")
+        return {}
+    
+    headers = {
+        'Authorization': f'Bearer {PRINTFUL_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        # Get sync products
+        sync_response = requests.get(
+            f'{PRINTFUL_BASE_URL}/sync/products',
+            headers=headers
+        )
+        
+        if sync_response.status_code == 200:
+            sync_data = sync_response.json()
+            sync_products = sync_data.get('result', [])
+            
+            products_data = {}
+            
+            for sync_product in sync_products:
+                sync_product_id = sync_product.get('id')
+                name = sync_product.get('name', '')
+                
+                # Get detailed sync product info with variants
+                detail_response = requests.get(
+                    f'{PRINTFUL_BASE_URL}/sync/products/{sync_product_id}',
+                    headers=headers
+                )
+                
+                if detail_response.status_code == 200:
+                    detail_data = detail_response.json()
+                    sync_product_detail = detail_data.get('result', {})
+                    
+                    # Get variants with their IDs
+                    variants = sync_product_detail.get('sync_variants', [])
+                    
+                    # Map variants by color and size
+                    color_variants = {}
+                    for variant in variants:
+                        variant_id = variant.get('id')
+                        variant_name = variant.get('name', '')
+                        
+                        # Extract color and size from variant name
+                        # Format: "IT'S TOO HOT! White text on dark background / French Navy / S"
+                        if ' / ' in variant_name:
+                            # Split by ' / ' to get the parts
+                            parts = variant_name.split(' / ')
+                            if len(parts) >= 3:
+                                # Last part is size, second to last is color
+                                color = parts[-2].strip()
+                                size = parts[-1].strip()
+                                
+                                if color not in color_variants:
+                                    color_variants[color] = {}
+                                
+                                color_variants[color][size] = {
+                                    'variant_id': variant_id,
+                                    'name': variant_name,
+                                    'retail_price': variant.get('retail_price', '25.00')
+                                }
+                    
+                    # Determine product type based on name
+                    if 'dark' in name.lower() or 'white text' in name.lower():
+                        product_key = 'tshirt'  # Dark design
+                        fallback_image = '/static/img/tshirt_text.png'
+                    elif 'light' in name.lower() or 'black text' in name.lower():
+                        product_key = 'tshirt_light'  # Light design
+                        fallback_image = '/static/img/tshirt_text_black.png'
+                    else:
+                        product_key = 'tshirt'  # Default to dark
+                        fallback_image = '/static/img/tshirt_text.png'
+                    
+                    products_data[product_key] = {
+                        'sync_product_id': sync_product_id,
+                        'name': name,
+                        'image': fallback_image,
+                        'variants': color_variants
+                    }
+            
+            return products_data
+            
+        else:
+            print(f"❌ API Error ({sync_response.status_code}): {sync_response.text}")
+            return {}
+            
+    except Exception as e:
+        print(f"❌ Error fetching product variants: {str(e)}")
+        return {}
+
 def get_printful_product_images():
     """Fetch product images from Printful API"""
     PRINTFUL_API_KEY = os.getenv('PRINTFUL_API_KEY')
@@ -188,17 +285,18 @@ def index():
 
 @app.route('/shop')
 def shop():
-    # Get product images from Printful
-    product_images = get_printful_product_images()
+    # Get actual product variants from Printful
+    product_variants = get_printful_product_variants()
     
-    # Product details with mockup images and color options
+    # Product details with actual variants and mockup images
     products = {
         'tshirt': {
             'name': 'IT\'S TOO HOT! T-Shirt (Dark)',
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with white text on dark background',
-            'printful_product_id': '387436926',
-            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt_text.png')),
+            'printful_product_id': product_variants.get('tshirt', {}).get('sync_product_id', '387436926'),
+            'image': product_variants.get('tshirt', {}).get('image', url_for('static', filename='img/tshirt_text.png')),
+            'variants': product_variants.get('tshirt', {}).get('variants', {}),
             'colors': {
                 'black': {
                     'name': 'Black',
@@ -221,8 +319,9 @@ def shop():
             'name': 'IT\'S TOO HOT! T-Shirt (Light)',
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with black text on light background',
-            'printful_product_id': '387436861',
-            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt_text_black.png')),
+            'printful_product_id': product_variants.get('tshirt_light', {}).get('sync_product_id', '387436861'),
+            'image': product_variants.get('tshirt_light', {}).get('image', url_for('static', filename='img/tshirt_text_black.png')),
+            'variants': product_variants.get('tshirt_light', {}).get('variants', {}),
             'colors': {
                 'white': {
                     'name': 'White',
@@ -233,15 +332,22 @@ def shop():
                     'name': 'Heather Grey',
                     'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-front-687da298707b3.png'),
                     'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-back-687da298712d1.png')
+                },
+                'heather-grey-alt': {
+                    'name': 'Heather Grey (Alt)',
+                    'front': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-front-687da2b806e04.png'),
+                    'back': url_for('static', filename='img/mockups/unisex-organic-mid-light-t-shirt-heather-grey-back-687da298712d1.png')
                 }
             }
         }
     }
     
-    # Debug: Print what images we found
-    print("🔍 Product images found:")
-    for product_id, image_data in product_images.items():
-        print(f"  {product_id}: {image_data.get('url', 'No URL')}")
+    # Debug: Print what variants we found
+    print("🔍 Product variants found:")
+    for product_key, product_data in product_variants.items():
+        print(f"  {product_key}: {product_data.get('name', 'Unknown')}")
+        for color, sizes in product_data.get('variants', {}).items():
+            print(f"    {color}: {list(sizes.keys())}")
     
     return render_template('shop.html', products=products)
 
@@ -363,11 +469,35 @@ def payment_cancelled():
     return render_template('payment_cancelled.html')
 
 def create_printful_order(order_data):
-    """Create order in Printful using newer API"""
+    """Create order in Printful using newer API with correct variant ID"""
     headers = {
         'Authorization': f'Bearer {PRINTFUL_API_KEY}',
         'Content-Type': 'application/json'
     }
+    
+    # Get the correct variant ID based on product, color, and size
+    product_variants = get_printful_product_variants()
+    product_key = order_data.get('product_id', 'tshirt')
+    color = order_data.get('color', 'black')
+    size = order_data.get('size', 'M')
+    
+    # Find the correct variant ID
+    variant_id = None
+    if product_key in product_variants:
+        product_data = product_variants[product_key]
+        variants = product_data.get('variants', {})
+        
+        # Try to find the exact color/size combination
+        if color in variants and size in variants[color]:
+            variant_id = variants[color][size]['variant_id']
+        else:
+            # Fallback: use the first available variant for this color
+            if color in variants:
+                first_size = list(variants[color].keys())[0]
+                variant_id = variants[color][first_size]['variant_id']
+    
+    if not variant_id:
+        raise Exception(f'Variant not found for {product_key}, color: {color}, size: {size}')
     
     # Prepare order data for Printful (newer API format)
     printful_order = {
@@ -380,7 +510,7 @@ def create_printful_order(order_data):
             'zip': order_data['address']['postal_code']
         },
         'items': [{
-            'sync_product_id': order_data['product_id'],
+            'sync_variant_id': variant_id,  # Use the specific variant ID
             'quantity': order_data['quantity']
         }],
         'retail_costs': {

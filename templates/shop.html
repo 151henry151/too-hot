@@ -224,6 +224,8 @@
             tshirt: {
                 name: '{{ products.tshirt.name|safe }}',
                 description: '{{ products.tshirt.description|safe }}',
+                printful_product_id: '{{ products.tshirt.printful_product_id }}',
+                availableColors: ['French Navy', 'Black', 'Anthracite'],
                 colors: {
                     black: {
                         name: 'Black',
@@ -245,6 +247,8 @@
             tshirt_light: {
                 name: '{{ products.tshirt_light.name|safe }}',
                 description: '{{ products.tshirt_light.description|safe }}',
+                printful_product_id: '{{ products.tshirt_light.printful_product_id }}',
+                availableColors: ['Heather Grey', 'White'],
                 colors: {
                     white: {
                         name: 'White',
@@ -255,6 +259,11 @@
                         name: 'Heather Grey',
                         front: '{{ products.tshirt_light.colors["heather-grey"].front }}',
                         back: '{{ products.tshirt_light.colors["heather-grey"].back }}'
+                    },
+                    'heather-grey-alt': {
+                        name: 'Heather Grey (Alt)',
+                        front: '{{ products.tshirt_light.colors["heather-grey-alt"].front }}',
+                        back: '{{ products.tshirt_light.colors["heather-grey-alt"].back }}'
                     }
                 }
             }
@@ -278,16 +287,28 @@
             
             colorOptions.innerHTML = '';
             
-            Object.keys(currentProduct.colors).forEach((colorKey, index) => {
-                const color = currentProduct.colors[colorKey];
-                const isSelected = colorKey === selectedColor;
+            // Use the available colors for this design
+            const availableColors = currentProduct.availableColors;
+            
+            // Map API color names to our display names
+            const colorNameMap = {
+                'French Navy': 'french-navy',
+                'Black': 'black',
+                'Anthracite': 'anthracite',
+                'White': 'white',
+                'Heather Grey': 'heather-grey'
+            };
+            
+            availableColors.forEach((apiColorName, index) => {
+                const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase();
+                const isSelected = displayColorKey === selectedColor;
                 
                 const colorBtn = document.createElement('button');
                 colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
                 colorBtn.innerHTML = `
-                    <div class="font-semibold">${color.name}</div>
+                    <div class="font-semibold">${apiColorName}</div>
                 `;
-                colorBtn.onclick = () => selectColor(colorKey);
+                colorBtn.onclick = () => selectColor(displayColorKey);
                 
                 colorOptions.appendChild(colorBtn);
             });
@@ -304,12 +325,26 @@
         function updateProductImage() {
             const productImage = document.getElementById('product-image');
             const currentProduct = products[selectedDesign];
+            
+            // Map our color keys back to API color names
+            const colorNameMap = {
+                'french-navy': 'French Navy',
+                'black': 'Black',
+                'anthracite': 'Anthracite',
+                'white': 'White',
+                'heather-grey': 'Heather Grey'
+            };
+            
+            const apiColorName = colorNameMap[selectedColor] || selectedColor;
             const currentColor = currentProduct.colors[selectedColor];
             
-            if (selectedView === 'front') {
+            if (currentColor && selectedView === 'front') {
                 productImage.src = currentColor.front;
-            } else {
+            } else if (currentColor && selectedView === 'back') {
                 productImage.src = currentColor.back;
+            } else {
+                // Fallback to default image if color not found
+                productImage.src = currentProduct.image;
             }
         }
         
@@ -343,13 +378,13 @@
         // Design selection
         document.getElementById('design-dark').addEventListener('click', function() {
             // Update button styles
-            document.getElementById('design-dark').classList.add('bg-gray-800', 'text-white', 'border-gray-800');
-            document.getElementById('design-dark').classList.remove('bg-white', 'text-gray-800', 'border-gray-300');
-            document.getElementById('design-light').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
-            document.getElementById('design-light').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
+            document.getElementById('design-dark').className = 'design-btn bg-gray-800 text-white px-4 py-3 rounded-lg border-2 border-gray-800 hover:bg-gray-700 transition-all';
+            document.getElementById('design-light').className = 'design-btn bg-white text-gray-800 px-4 py-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50 transition-all';
             
             selectedDesign = 'tshirt';
-            selectedColor = 'black'; // Reset to first color
+            // Reset to first available color for this design
+            const availableColors = products[selectedDesign].availableColors;
+            selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'black';
             selectedView = 'front'; // Reset to front view
             
             // Update product details
@@ -363,13 +398,13 @@
         
         document.getElementById('design-light').addEventListener('click', function() {
             // Update button styles
-            document.getElementById('design-light').classList.add('bg-gray-800', 'text-white', 'border-gray-800');
-            document.getElementById('design-light').classList.remove('bg-white', 'text-gray-800', 'border-gray-300');
-            document.getElementById('design-dark').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
-            document.getElementById('design-dark').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
+            document.getElementById('design-light').className = 'design-btn bg-gray-800 text-white px-4 py-3 rounded-lg border-2 border-gray-800 hover:bg-gray-700 transition-all';
+            document.getElementById('design-dark').className = 'design-btn bg-white text-gray-800 px-4 py-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50 transition-all';
             
             selectedDesign = 'tshirt_light';
-            selectedColor = 'white'; // Reset to first color
+            // Reset to first available color for this design
+            const availableColors = products[selectedDesign].availableColors;
+            selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'white';
             selectedView = 'front'; // Reset to front view
             
             // Update product details
@@ -412,6 +447,9 @@
                 const size = document.getElementById('size').value;
                 const total = (25.00 * quantity).toFixed(2);
                 
+                // Get the current product data
+                const currentProduct = products[selectedDesign];
+                
                 const response = await fetch('/create-payment', {
                     method: 'POST',
                     headers: {
@@ -422,7 +460,8 @@
                         quantity: quantity,
                         size: size,
                         product_id: selectedDesign,
-                        color: selectedColor
+                        color: selectedColor,
+                        printful_product_id: currentProduct.printful_product_id
                     })
                 });
                 
