@@ -11,6 +11,11 @@
 *KEYS*.md
 *PASSWORDS*.md
 
+# VAPID keys and sensitive files
+vapid_keys.json
+*.pem
+*.key
+
 # Python
 __pycache__/
 *.py[cod]

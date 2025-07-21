@@ -6,6 +6,10 @@ Test script to debug Printful API variant structure
 import os
 import requests
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def test_printful_variants():
     """Test Printful API to see actual variant structure"""
