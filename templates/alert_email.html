@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>IT'S TOO HOT! Climate Alert</title>
+  <style>
+    body { background: #f3f4f6; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .container { background: #fff; max-width: 500px; margin: 30px auto; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden; }
+    .header { background: #2563eb; color: #fff; padding: 24px 24px 12px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 2em; letter-spacing: 1px; }
+    .hero-img { width: 100%; max-width: 320px; margin: 20px auto 0 auto; display: block; border-radius: 8px; }
+    .content { padding: 24px; color: #222; }
+    .alert { color: #dc2626; font-size: 1.2em; font-weight: bold; margin-bottom: 12px; }
+    .temp { font-size: 1.5em; color: #2563eb; font-weight: bold; }
+    .cta { background: #fbbf24; color: #222; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; margin: 18px 0; }
+    .footer { background: #f3f4f6; color: #888; text-align: center; font-size: 0.9em; padding: 16px; }
+    .shop-link { color: #2563eb; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>IT'S TOO HOT!</h1>
+      <div style="font-size:1.1em; margin-top:6px;">Climate Alert</div>
+    </div>
+    <img src="https://its2hot.org/static/img/climate_protest_flashmob.png" alt="Climate Protest Flashmob" class="hero-img" style="max-width:220px;">
+    <div class="content">
+      <div class="alert">🔥 Today in {{ location }}: <span class="temp">{{ current_temp }}°F</span></div>
+      <div style="margin-bottom: 10px;">
+        That's <span style="color:#dc2626;font-weight:bold;">{{ temp_diff }}°F hotter</span> than the average high for this day over the last {{ years }} years (avg: {{ avg_temp }}°F).
+      </div>
+      <div style="margin-bottom: 18px;">
+        Extreme heat is a sign of climate disruption. Let's take action together!
+      </div>
+      <a href="https://its2hot.org/shop" class="cta">Wear your "IT'S TOO HOT!" t-shirt today</a>
+      <div style="margin-top: 18px;">
+        <span style="color:#2563eb;">Don't have an IT'S TOO HOT! t-shirt?</span>
+        <a href="https://its2hot.org/shop" class="shop-link">Buy one here</a>.
+      </div>
+      <div style="margin-top: 18px; font-size:0.95em; color:#666;">
+        Share this alert, start a conversation, and help raise climate awareness.<br>
+        #TooHot #ClimateAction #ClimateChange
+      </div>
+    </div>
+    <div class="footer">
+      &copy; 2024 IT'S TOO HOT! Climate Campaign &mdash; <a href="https://its2hot.org" style="color:#2563eb;">its2hot.org</a>
+    </div>
+  </div>
+</body>
+</html> 

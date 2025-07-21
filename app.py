@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session, Response
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session, Response, render_template_string
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import requests
@@ -761,43 +761,27 @@ def check_temperatures():
         'details': notifications_sent
     })
 
-def send_notification(email, location, current_temp, avg_temp):
-    """Send climate alert notification to subscriber"""
+def send_notification(email, location, current_temp, avg_temp, years=30):
+    """Send climate alert notification to subscriber (HTML email)"""
     try:
+        temp_diff = round(current_temp - avg_temp, 1)
         subject = f"🌡️ Climate Alert - {location} - IT'S TOO HOT!"
-        body = f"""
-        CLIMATE ALERT - Time to Take Action!
-        
-        Location: {location}
-        Current Temperature: {current_temp}°F
-        Average Temperature: {avg_temp}°F
-        Climate Anomaly: +{current_temp - avg_temp}°F above normal
-        
-        This is a clear sign of climate change in action. Temperatures are {TEMP_THRESHOLD}°F+ 
-        higher than historical averages for this time of year.
-        
-        ACTION REQUIRED:
-        - Wear your "IT'S TOO HOT!" shirt today
-        - Share this alert on social media
-        - Start conversations about climate change
-        - Contact your representatives about climate action
-        
-        This is not just hot weather - this is climate disruption happening now.
-        Let's raise awareness together!
-        
-        #TooHot #ClimateAction #ClimateChange
-        """
-        
+        html_body = render_template(
+            'alert_email.html',
+            location=location,
+            current_temp=current_temp,
+            avg_temp=avg_temp,
+            temp_diff=temp_diff,
+            years=years
+        )
         msg = Message(
             subject=subject,
-            sender=app.config['MAIL_USERNAME'],
+            sender=app.config['MAIL_DEFAULT_SENDER'],
             recipients=[email],
-            body=body
+            html=html_body
         )
-        
         mail.send(msg)
         print(f"Notification sent to {email}")
-        
     except Exception as e:
         print(f"Failed to send notification to {email}: {e}")
 
@@ -902,10 +886,19 @@ def admin_send_test_email():
     data = request.get_json()
     email = data.get('email')
     try:
+        # Use placeholder values for test
+        html_body = render_template(
+            'alert_email.html',
+            location='New York',
+            current_temp=104,
+            avg_temp=87,
+            temp_diff=17,
+            years=30
+        )
         msg = Message(
             'Test Climate Alert from IT\'S TOO HOT!',
             recipients=[email],
-            body='This is a test climate alert email. If this were a real event, you would receive details about the temperature anomaly.'
+            html=html_body
         )
         mail.send(msg)
         log_event('notification_log.json', {
