@@ -225,7 +225,7 @@
                 name: '{{ products.tshirt.name|safe }}',
                 description: '{{ products.tshirt.description|safe }}',
                 printful_product_id: '{{ products.tshirt.printful_product_id }}',
-                availableColors: ['French Navy', 'Black', 'Anthracite'],
+                variants: {{ products.tshirt.variants|tojson|default('{}') }},
                 colors: {
                     black: {
                         name: 'Black',
@@ -248,7 +248,7 @@
                 name: '{{ products.tshirt_light.name|safe }}',
                 description: '{{ products.tshirt_light.description|safe }}',
                 printful_product_id: '{{ products.tshirt_light.printful_product_id }}',
-                availableColors: ['Heather Grey', 'White'],
+                variants: {{ products.tshirt_light.variants|tojson|default('{}') }},
                 colors: {
                     white: {
                         name: 'White',
@@ -287,28 +287,23 @@
             
             colorOptions.innerHTML = '';
             
-            // Use the available colors for this design
-            const availableColors = currentProduct.availableColors;
+            // Get available colors from variants
+            const availableColors = Object.keys(currentProduct.variants || {});
             
-            // Map API color names to our display names
-            const colorNameMap = {
-                'French Navy': 'french-navy',
-                'Black': 'black',
-                'Anthracite': 'anthracite',
-                'White': 'white',
-                'Heather Grey': 'heather-grey'
-            };
+            if (availableColors.length === 0) {
+                console.warn('No variants found for design:', selectedDesign);
+                return;
+            }
             
-            availableColors.forEach((apiColorName, index) => {
-                const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase();
-                const isSelected = displayColorKey === selectedColor;
+            availableColors.forEach((colorKey) => {
+                const isSelected = colorKey.toLowerCase() === selectedColor.toLowerCase();
                 
                 const colorBtn = document.createElement('button');
                 colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
                 colorBtn.innerHTML = `
-                    <div class="font-semibold">${apiColorName}</div>
+                    <div class="font-semibold">${colorKey}</div>
                 `;
-                colorBtn.onclick = () => selectColor(displayColorKey);
+                colorBtn.onclick = () => selectColor(colorKey.toLowerCase());
                 
                 colorOptions.appendChild(colorBtn);
             });
@@ -383,7 +378,7 @@
             
             selectedDesign = 'tshirt';
             // Reset to first available color for this design
-            const availableColors = products[selectedDesign].availableColors;
+            const availableColors = Object.keys(products[selectedDesign].variants || {});
             selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'black';
             selectedView = 'front'; // Reset to front view
             
@@ -403,7 +398,7 @@
             
             selectedDesign = 'tshirt_light';
             // Reset to first available color for this design
-            const availableColors = products[selectedDesign].availableColors;
+            const availableColors = Object.keys(products[selectedDesign].variants || {});
             selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'white';
             selectedView = 'front'; // Reset to front view
             
