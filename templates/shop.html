@@ -285,10 +285,17 @@
             const colorOptions = document.getElementById('color-options');
             const currentProduct = products[selectedDesign];
             
+            console.log('updateColorOptions called');
+            console.log('selectedDesign:', selectedDesign);
+            console.log('currentProduct:', currentProduct);
+            console.log('variants:', currentProduct.variants);
+            
             colorOptions.innerHTML = '';
             
             // Get available colors from variants
             const availableColors = Object.keys(currentProduct.variants || {});
+            
+            console.log('availableColors:', availableColors);
             
             if (availableColors.length === 0) {
                 console.warn('No variants found for design:', selectedDesign);
@@ -307,6 +314,8 @@
             availableColors.forEach((apiColorName) => {
                 const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase().replace(' ', '-');
                 const isSelected = displayColorKey === selectedColor;
+                
+                console.log('Creating button for:', apiColorName, '->', displayColorKey, 'selected:', isSelected);
                 
                 const colorBtn = document.createElement('button');
                 colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
