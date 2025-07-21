@@ -72,10 +72,10 @@
                     <!-- Product Details -->
                     <div>
                         <h3 class="text-3xl font-bold text-gray-800 mb-4" id="product-name">
-                            {{ products.tshirt.name }}
+                            {{ products.tshirt.name|safe }}
                         </h3>
                         <p class="text-gray-600 mb-6" id="product-description">
-                            {{ products.tshirt.description }}
+                            {{ products.tshirt.description|safe }}
                         </p>
                         
                         <!-- Design Selection -->
@@ -212,8 +212,8 @@
             document.getElementById('product-image').src = '{{ products.tshirt.image }}';
             
             // Update product details
-            document.getElementById('product-name').textContent = '{{ products.tshirt.name }}';
-            document.getElementById('product-description').textContent = '{{ products.tshirt.description }}';
+            document.getElementById('product-name').innerHTML = '{{ products.tshirt.name|safe }}';
+            document.getElementById('product-description').innerHTML = '{{ products.tshirt.description|safe }}';
             
             selectedDesign = 'tshirt';
         });
@@ -229,8 +229,8 @@
             document.getElementById('product-image').src = '{{ products.tshirt_light.image }}';
             
             // Update product details
-            document.getElementById('product-name').textContent = '{{ products.tshirt_light.name }}';
-            document.getElementById('product-description').textContent = '{{ products.tshirt_light.description }}';
+            document.getElementById('product-name').innerHTML = '{{ products.tshirt_light.name|safe }}';
+            document.getElementById('product-description').innerHTML = '{{ products.tshirt_light.description|safe }}';
             
             selectedDesign = 'tshirt_light';
         });
