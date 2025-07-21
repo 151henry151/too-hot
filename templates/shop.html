@@ -295,15 +295,25 @@
                 return;
             }
             
-            availableColors.forEach((colorKey) => {
-                const isSelected = colorKey.toLowerCase() === selectedColor.toLowerCase();
+            // Map API color names to display color keys
+            const colorNameMap = {
+                'French Navy': 'french-navy',
+                'Black': 'black',
+                'Anthracite': 'anthracite',
+                'White': 'white',
+                'Heather Grey': 'heather-grey'
+            };
+            
+            availableColors.forEach((apiColorName) => {
+                const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase().replace(' ', '-');
+                const isSelected = displayColorKey === selectedColor;
                 
                 const colorBtn = document.createElement('button');
                 colorBtn.className = `color-btn px-4 py-3 rounded-lg border-2 transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}`;
                 colorBtn.innerHTML = `
-                    <div class="font-semibold">${colorKey}</div>
+                    <div class="font-semibold">${apiColorName}</div>
                 `;
-                colorBtn.onclick = () => selectColor(colorKey.toLowerCase());
+                colorBtn.onclick = () => selectColor(displayColorKey);
                 
                 colorOptions.appendChild(colorBtn);
             });
@@ -379,7 +389,7 @@
             selectedDesign = 'tshirt';
             // Reset to first available color for this design
             const availableColors = Object.keys(products[selectedDesign].variants || {});
-            selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'black';
+            selectedColor = availableColors.length > 0 ? 'black' : 'black'; // Default to black for dark design
             selectedView = 'front'; // Reset to front view
             
             // Update product details
@@ -399,7 +409,7 @@
             selectedDesign = 'tshirt_light';
             // Reset to first available color for this design
             const availableColors = Object.keys(products[selectedDesign].variants || {});
-            selectedColor = availableColors.length > 0 ? availableColors[0].toLowerCase().replace(' ', '-') : 'white';
+            selectedColor = availableColors.length > 0 ? 'white' : 'white'; // Default to white for light design
             selectedView = 'front'; // Reset to front view
             
             // Update product details
