@@ -84,6 +84,96 @@ def test_printful_connection():
         print(f"❌ Error connecting to Printful API: {str(e)}")
         return False
 
+def get_printful_product_images():
+    """Fetch product images from Printful API"""
+    PRINTFUL_API_KEY = os.getenv('PRINTFUL_API_KEY')
+    PRINTFUL_BASE_URL = 'https://api.printful.com'
+    
+    if not PRINTFUL_API_KEY:
+        print("❌ Printful API key not found")
+        return {}
+    
+    headers = {
+        'Authorization': f'Bearer {PRINTFUL_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        # Get catalog products to find the base product IDs
+        response = requests.get(
+            f'{PRINTFUL_BASE_URL}/products',
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            catalog_products = data.get('result', [])
+            
+            # Find t-shirt products
+            tshirt_products = {}
+            for product in catalog_products:
+                name = product.get('title', '').lower()
+                if 't-shirt' in name or 'tshirt' in name:
+                    product_id = product.get('id')
+                    tshirt_products[product_id] = {
+                        'name': product.get('title', ''),
+                        'image': product.get('image', '')
+                    }
+            
+            # Now get sync products and map them to catalog images
+            sync_response = requests.get(
+                f'{PRINTFUL_BASE_URL}/sync/products',
+                headers=headers
+            )
+            
+            if sync_response.status_code == 200:
+                sync_data = sync_response.json()
+                sync_products = sync_data.get('result', [])
+                
+                product_images = {}
+                for sync_product in sync_products:
+                    sync_product_id = sync_product.get('id')
+                    name = sync_product.get('name', '')
+                    
+                    # Get detailed sync product info
+                    detail_response = requests.get(
+                        f'{PRINTFUL_BASE_URL}/sync/products/{sync_product_id}',
+                        headers=headers
+                    )
+                    
+                    if detail_response.status_code == 200:
+                        detail_data = detail_response.json()
+                        sync_product_detail = detail_data.get('result', {})
+                        
+                        # Get the catalog product ID from the first variant
+                        variants = sync_product_detail.get('sync_variants', [])
+                        if variants:
+                            first_variant = variants[0]
+                            catalog_product_id = first_variant.get('product_id')
+                            
+                            # Use catalog product image if available
+                            if catalog_product_id in tshirt_products:
+                                product_images[sync_product_id] = {
+                                    'url': tshirt_products[catalog_product_id]['image'],
+                                    'name': name
+                                }
+                            else:
+                                # Fallback to static image
+                                product_images[sync_product_id] = {
+                                    'url': '/static/img/tshirt.png',
+                                    'name': name
+                                }
+                
+                return product_images
+            
+        else:
+            print(f"❌ API Error ({response.status_code}): {response.text}")
+            return {}
+            
+    except Exception as e:
+        print(f"❌ Error fetching product images: {str(e)}")
+        return {}
+
 @app.route('/')
 def index():
     """Serve the main web interface"""
@@ -91,7 +181,33 @@ def index():
 
 @app.route('/shop')
 def shop():
-    return render_template('shop.html')
+    # Get product images from Printful
+    product_images = get_printful_product_images()
+    
+    # Product details with real images
+    products = {
+        'tshirt': {
+            'name': 'IT\'S TOO HOT! T-Shirt (Dark)',
+            'price': 25.00,
+            'description': 'High-quality cotton t-shirt with white text on dark background',
+            'printful_product_id': '387436926',
+            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt.png'))
+        },
+        'tshirt_light': {
+            'name': 'IT\'S TOO HOT! T-Shirt (Light)',
+            'price': 25.00,
+            'description': 'High-quality cotton t-shirt with black text on light background',
+            'printful_product_id': '387436861',
+            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt.png'))
+        }
+    }
+    
+    # Debug: Print what images we found
+    print("🔍 Product images found:")
+    for product_id, image_data in product_images.items():
+        print(f"  {product_id}: {image_data.get('url', 'No URL')}")
+    
+    return render_template('shop.html', products=products)
 
 @app.route('/checkout')
 def checkout():

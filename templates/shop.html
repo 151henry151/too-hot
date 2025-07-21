@@ -63,19 +63,19 @@
                 <div class="grid md:grid-cols-2 gap-8 items-center">
                     <!-- Product Image -->
                     <div class="text-center">
-                        <img src="{{ url_for('static', filename='img/tshirt.png') }}" 
+                        <img id="product-image" 
+                             src="{{ products.tshirt.image }}" 
                              alt="IT'S TOO HOT! T-Shirt" 
                              class="w-full max-w-md mx-auto rounded-lg shadow-lg">
                     </div>
                     
                     <!-- Product Details -->
                     <div>
-                        <h3 class="text-3xl font-bold text-gray-800 mb-4">
-                            IT'S TOO HOT! T-Shirt
+                        <h3 class="text-3xl font-bold text-gray-800 mb-4" id="product-name">
+                            {{ products.tshirt.name }}
                         </h3>
-                        <p class="text-gray-600 mb-6">
-                            High-quality cotton t-shirt featuring our bold climate awareness message. 
-                            Perfect for raising awareness and starting conversations about climate change.
+                        <p class="text-gray-600 mb-6" id="product-description">
+                            {{ products.tshirt.description }}
                         </p>
                         
                         <!-- Design Selection -->
@@ -208,6 +208,13 @@
             document.getElementById('design-light').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
             document.getElementById('design-light').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
             
+            // Update product image
+            document.getElementById('product-image').src = '{{ products.tshirt.image }}';
+            
+            // Update product details
+            document.getElementById('product-name').textContent = '{{ products.tshirt.name }}';
+            document.getElementById('product-description').textContent = '{{ products.tshirt.description }}';
+            
             selectedDesign = 'tshirt';
         });
         
@@ -217,6 +224,13 @@
             document.getElementById('design-light').classList.remove('bg-white', 'text-gray-800', 'border-gray-300');
             document.getElementById('design-dark').classList.add('bg-white', 'text-gray-800', 'border-gray-300');
             document.getElementById('design-dark').classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
+            
+            // Update product image
+            document.getElementById('product-image').src = '{{ products.tshirt_light.image }}';
+            
+            // Update product details
+            document.getElementById('product-name').textContent = '{{ products.tshirt_light.name }}';
+            document.getElementById('product-description').textContent = '{{ products.tshirt_light.description }}';
             
             selectedDesign = 'tshirt_light';
         });
