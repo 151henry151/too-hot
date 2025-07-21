@@ -39,6 +39,14 @@ steps:
       - 'WEATHER_API_KEY=${_WEATHER_API_KEY}'
       - '--set-env-vars'
       - 'SECRET_KEY=${_SECRET_KEY}'
+      - '--set-env-vars'
+      - 'PAYPAL_MODE=sandbox'
+      - '--set-env-vars'
+      - 'PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}'
+      - '--set-secrets'
+      - 'PAYPAL_CLIENT_SECRET=paypal-client-secret:latest'
+      - '--set-secrets'
+      - 'PRINTFUL_API_KEY=printful-api-key:latest'
 
 images:
   - 'gcr.io/$PROJECT_ID/too-hot:latest'
@@ -50,4 +58,5 @@ substitutions:
   _MAIL_USERNAME: 'istoohotbytendegrees@gmail.com'
   _MAIL_PASSWORD: 'ggpi unop meya zdvr'
   _WEATHER_API_KEY: '06f86b6acb6a4a9785d04941252007'
-  _SECRET_KEY: 'your-secret-key-here' 
+  _SECRET_KEY: 'your-secret-key-here'
+  _PAYPAL_CLIENT_ID: 'AQQBQnN4eMblzRmyLzOmpxwFlMO3VVfHfCSygAH2uudLH5DkZu5nESApFd2FAltXlAE-KPa4cZyeXYUJ' 
