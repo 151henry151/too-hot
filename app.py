@@ -15,11 +15,22 @@ CORS(app)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
 
 # Configure PayPal
-paypalrestsdk.configure({
-    "mode": os.getenv('PAYPAL_MODE', 'sandbox'),  # sandbox or live
-    "client_id": os.getenv('PAYPAL_CLIENT_ID'),
-    "client_secret": os.getenv('PAYPAL_CLIENT_SECRET')
-})
+paypal_mode = os.getenv('PAYPAL_MODE', 'sandbox')  # sandbox for local dev, live for production
+paypal_client_id = os.getenv('PAYPAL_CLIENT_ID')
+paypal_client_secret = os.getenv('PAYPAL_CLIENT_SECRET')
+
+if paypal_client_id and paypal_client_secret:
+    paypalrestsdk.configure({
+        "mode": paypal_mode,
+        "client_id": paypal_client_id,
+        "client_secret": paypal_client_secret
+    })
+    print(f"✅ PayPal configured in {paypal_mode} mode")
+else:
+    print("⚠️  PayPal credentials not found. Payment functionality will not work.")
+    print("   Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET environment variables.")
+    print("   For local development, use sandbox mode.")
+    print("   For production, use live mode with Google Cloud Secret Manager.")
 
 # Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'

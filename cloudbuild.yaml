@@ -32,7 +32,7 @@ steps:
       - '--set-env-vars'
       - 'FLASK_ENV=production'
       - '--set-env-vars'
-      - 'PAYPAL_MODE=sandbox'
+      - 'PAYPAL_MODE=live'
       - '--set-secrets'
       - 'PAYPAL_CLIENT_ID=paypal-client-id:latest'
       - '--set-secrets'
