@@ -340,6 +340,11 @@
             const productImage = document.getElementById('product-image');
             const currentProduct = products[selectedDesign];
             
+            console.log('updateProductImage called');
+            console.log('selectedColor:', selectedColor);
+            console.log('selectedView:', selectedView);
+            console.log('available colors:', Object.keys(currentProduct.colors || {}));
+            
             // Map our color keys back to API color names
             const colorNameMap = {
                 'french-navy': 'French Navy',
@@ -351,6 +356,8 @@
             
             const apiColorName = colorNameMap[selectedColor] || selectedColor;
             const currentColor = currentProduct.colors[selectedColor];
+            
+            console.log('currentColor:', currentColor);
             
             if (currentColor && selectedView === 'front') {
                 productImage.src = currentColor.front;
