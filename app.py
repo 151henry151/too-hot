@@ -158,9 +158,16 @@ def get_printful_product_images():
                                     'name': name
                                 }
                             else:
-                                # Fallback to static image
+                                # Use different static images based on product name
+                                if 'dark' in name.lower() or 'white text' in name.lower():
+                                    fallback_image = '/static/img/tshirt_text.png'  # White text on dark
+                                elif 'light' in name.lower() or 'black text' in name.lower():
+                                    fallback_image = '/static/img/tshirt_text_black.png'  # Black text on light
+                                else:
+                                    fallback_image = '/static/img/tshirt.png'  # Default
+                                
                                 product_images[sync_product_id] = {
-                                    'url': '/static/img/tshirt.png',
+                                    'url': fallback_image,
                                     'name': name
                                 }
                 
@@ -191,14 +198,14 @@ def shop():
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with white text on dark background',
             'printful_product_id': '387436926',
-            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt.png'))
+            'image': product_images.get('387436926', {}).get('url', url_for('static', filename='img/tshirt_text.png'))
         },
         'tshirt_light': {
             'name': 'IT\'S TOO HOT! T-Shirt (Light)',
             'price': 25.00,
             'description': 'High-quality cotton t-shirt with black text on light background',
             'printful_product_id': '387436861',
-            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt.png'))
+            'image': product_images.get('387436861', {}).get('url', url_for('static', filename='img/tshirt_text_black.png'))
         }
     }
     
