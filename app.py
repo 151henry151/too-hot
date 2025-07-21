@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import paypalrestsdk
 from functools import wraps
 import base64
+from flask_sqlalchemy import SQLAlchemy
 
 load_dotenv()
 
@@ -57,8 +58,29 @@ print(f"DEBUG: WEATHER_API_KEY = {os.getenv('WEATHER_API_KEY')[:4]}..." if os.ge
 
 mail = Mail(app)
 
-# In-memory storage for subscribers (in production, use a database)
-subscribers = []
+# --- Database Setup ---
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///too_hot.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class Subscriber(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(256), unique=True, nullable=False)
+    location = db.Column(db.String(128), default='auto')
+    subscribed_at = db.Column(db.String(64), nullable=False)
+
+    def as_dict(self):
+        return {
+            'email': self.email,
+            'location': self.location,
+            'subscribed_at': self.subscribed_at
+        }
+
+# --- Initialize DB ---
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 # Weather API configuration
 WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
@@ -634,59 +656,45 @@ def send_welcome_email(email, location):
     except Exception as e:
         print(f"Failed to send welcome email to {email}: {e}")
 
+# --- Update /api/subscribe to use DB ---
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
-    """Subscribe a user to temperature notifications"""
     data = request.get_json()
-    
     if not data or 'email' not in data:
         return jsonify({'error': 'Email is required'}), 400
-    
     email = data['email'].strip()
-    
-    # Basic email validation
     if '@' not in email or '.' not in email:
         return jsonify({'error': 'Invalid email format'}), 400
-    
-    # Check if already subscribed
-    if any(sub['email'] == email for sub in subscribers):
+    if Subscriber.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already subscribed'}), 409
-    
-    # Add subscriber
     location = data.get('location', 'auto')
-    subscriber = {
-        'email': email,
-        'subscribed_at': datetime.now().isoformat(),
-        'location': location
-    }
-    subscribers.append(subscriber)
-    
-    # Send welcome email
+    subscriber = Subscriber(
+        email=email,
+        location=location,
+        subscribed_at=datetime.now().isoformat()
+    )
+    db.session.add(subscriber)
+    db.session.commit()
     try:
         send_welcome_email(email, location)
     except Exception as e:
         print(f"Failed to send welcome email: {e}")
-        # Don't fail the subscription if welcome email fails
-    
     return jsonify({
         'message': 'Successfully subscribed to temperature notifications',
         'email': email
     }), 201
 
+# --- Update /api/unsubscribe to use DB ---
 @app.route('/api/unsubscribe', methods=['POST'])
 def unsubscribe():
-    """Unsubscribe a user from temperature notifications"""
     data = request.get_json()
-    
     if not data or 'email' not in data:
         return jsonify({'error': 'Email is required'}), 400
-    
     email = data['email'].strip()
-    
-    # Remove subscriber
-    global subscribers
-    subscribers = [sub for sub in subscribers if sub['email'] != email]
-    
+    subscriber = Subscriber.query.filter_by(email=email).first()
+    if subscriber:
+        db.session.delete(subscriber)
+        db.session.commit()
     return jsonify({
         'message': 'Successfully unsubscribed from temperature notifications',
         'email': email
@@ -700,10 +708,10 @@ def check_temperatures():
     
     notifications_sent = []
     
-    for subscriber in subscribers:
+    for subscriber in Subscriber.query.all():
         try:
             # Get current weather and historical data
-            location = subscriber.get('location', 'auto')
+            location = subscriber.location
             
             # For demo purposes, we'll use a sample location (NYC)
             # In production, you'd get the user's actual location
@@ -741,9 +749,9 @@ def check_temperatures():
             # Check if current temp is TEMP_THRESHOLD+ degrees hotter than average
             if current_temp >= avg_temp + TEMP_THRESHOLD:
                 # Send notification
-                send_notification(subscriber['email'], location, current_temp, avg_temp)
+                send_notification(subscriber.email, location, current_temp, avg_temp)
                 notifications_sent.append({
-                    'email': subscriber['email'],
+                    'email': subscriber.email,
                     'location': location,
                     'current_temp': current_temp,
                     'avg_temp': avg_temp,
@@ -751,11 +759,11 @@ def check_temperatures():
                 })
                 
         except Exception as e:
-            print(f"Error processing subscriber {subscriber['email']}: {e}")
+            print(f"Error processing subscriber {subscriber.email}: {e}")
             continue
     
     return jsonify({
-        'message': f'Processed {len(subscribers)} subscribers',
+        'message': f'Processed {len(Subscriber.query.all())} subscribers',
         'notifications_sent': len(notifications_sent),
         'threshold': TEMP_THRESHOLD,
         'details': notifications_sent
@@ -785,12 +793,13 @@ def send_notification(email, location, current_temp, avg_temp, years=30):
     except Exception as e:
         print(f"Failed to send notification to {email}: {e}")
 
+# --- Update /api/subscribers to use DB ---
 @app.route('/api/subscribers', methods=['GET'])
 def get_subscribers():
-    """Get list of all subscribers (for admin purposes)"""
+    subs = Subscriber.query.all()
     return jsonify({
-        'subscribers': subscribers,
-        'count': len(subscribers)
+        'subscribers': [s.as_dict() for s in subs],
+        'count': len(subs)
     })
 
 @app.route('/api/test-printful', methods=['GET'])
@@ -849,13 +858,9 @@ def log_event(filename, event):
 @app.route('/admin', methods=['GET'])
 @requires_auth
 def admin_dashboard():
-    # Email subscribers (in-memory, warning: not persistent)
-    email_subs = subscribers
-    # Push subscribers
+    email_subs = [s.as_dict() for s in Subscriber.query.all()]
     push_subs = load_json_file('push_subscriptions.json', default=[])
-    # Notification log
     notif_log = load_json_file('notification_log.json', default=[])
-    # Trigger log
     trigger_log = load_json_file('trigger_log.json', default=[])
     return render_template('admin_dashboard.html',
         email_subs=email_subs,
