@@ -32,14 +32,6 @@ steps:
       - '--set-env-vars'
       - 'FLASK_ENV=production'
       - '--set-env-vars'
-      - 'MAIL_USERNAME=${_MAIL_USERNAME}'
-      - '--set-env-vars'
-      - 'MAIL_PASSWORD=${_MAIL_PASSWORD}'
-      - '--set-env-vars'
-      - 'WEATHER_API_KEY=${_WEATHER_API_KEY}'
-      - '--set-env-vars'
-      - 'SECRET_KEY=${_SECRET_KEY}'
-      - '--set-env-vars'
       - 'PAYPAL_MODE=sandbox'
       - '--set-env-vars'
       - 'PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}'
@@ -47,6 +39,14 @@ steps:
       - 'PAYPAL_CLIENT_SECRET=paypal-client-secret:latest'
       - '--set-secrets'
       - 'PRINTFUL_API_KEY=printful-api-key:latest'
+      - '--set-secrets'
+      - 'MAIL_USERNAME=mail-username:latest'
+      - '--set-secrets'
+      - 'MAIL_PASSWORD=mail-password:latest'
+      - '--set-secrets'
+      - 'WEATHER_API_KEY=weather-api-key:latest'
+      - '--set-env-vars'
+      - 'SECRET_KEY=${_SECRET_KEY}'
 
 images:
   - 'gcr.io/$PROJECT_ID/too-hot:latest'
@@ -55,8 +55,5 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _MAIL_USERNAME: 'istoohotbytendegrees@gmail.com'
-  _MAIL_PASSWORD: 'ggpi unop meya zdvr'
-  _WEATHER_API_KEY: '06f86b6acb6a4a9785d04941252007'
   _SECRET_KEY: 'your-secret-key-here'
   _PAYPAL_CLIENT_ID: 'AQQBQnN4eMblzRmyLzOmpxwFlMO3VVfHfCSygAH2uudLH5DkZu5nESApFd2FAltXlAE-KPa4cZyeXYUJ' 
