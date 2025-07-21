@@ -33,8 +33,8 @@ steps:
       - 'FLASK_ENV=production'
       - '--set-env-vars'
       - 'PAYPAL_MODE=sandbox'
-      - '--set-env-vars'
-      - 'PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}'
+      - '--set-secrets'
+      - 'PAYPAL_CLIENT_ID=paypal-client-id:latest'
       - '--set-secrets'
       - 'PAYPAL_CLIENT_SECRET=paypal-client-secret:latest'
       - '--set-secrets'
@@ -55,5 +55,4 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _SECRET_KEY: 'your-secret-key-here'
-  _PAYPAL_CLIENT_ID: 'AQQBQnN4eMblzRmyLzOmpxwFlMO3VVfHfCSygAH2uudLH5DkZu5nESApFd2FAltXlAE-KPa4cZyeXYUJ' 
+  _SECRET_KEY: 'your-secret-key-here' 
