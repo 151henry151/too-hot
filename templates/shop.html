@@ -269,6 +269,25 @@
         let selectedColor = 'black'; // Default color
         let selectedView = 'front'; // Default view
         
+        // Color mapping between display keys and Printful API names
+        const colorMapping = {
+            // Display key -> Printful API name
+            'black': 'Black',
+            'french-navy': 'French Navy',
+            'anthracite': 'Anthracite',
+            'white': 'White',
+            'heather-grey': 'Heather Grey'
+        };
+        
+        // Reverse mapping: Printful API name -> Display key
+        const reverseColorMapping = {
+            'Black': 'black',
+            'French Navy': 'french-navy',
+            'Anthracite': 'anthracite',
+            'White': 'white',
+            'Heather Grey': 'heather-grey'
+        };
+        
         // Initialize the page
         function initializePage() {
             updateColorOptions();
@@ -290,17 +309,8 @@
                 return;
             }
             
-            // Map API color names to display color keys
-            const colorNameMap = {
-                'French Navy': 'french-navy',
-                'Black': 'black',
-                'Anthracite': 'anthracite',
-                'White': 'white',
-                'Heather Grey': 'heather-grey'
-            };
-            
             availableColors.forEach((apiColorName) => {
-                const displayColorKey = colorNameMap[apiColorName] || apiColorName.toLowerCase().replace(' ', '-');
+                const displayColorKey = reverseColorMapping[apiColorName] || apiColorName.toLowerCase().replace(' ', '-');
                 const isSelected = displayColorKey === selectedColor;
                 
                 const colorBtn = document.createElement('button');
@@ -326,16 +336,6 @@
             const productImage = document.getElementById('product-image');
             const currentProduct = products[selectedDesign];
             
-            // Map our color keys back to API color names
-            const colorNameMap = {
-                'french-navy': 'French Navy',
-                'black': 'Black',
-                'anthracite': 'Anthracite',
-                'white': 'White',
-                'heather-grey': 'Heather Grey'
-            };
-            
-            const apiColorName = colorNameMap[selectedColor] || selectedColor;
             const currentColor = currentProduct.colors[selectedColor];
             
             if (currentColor && selectedView === 'front') {
@@ -386,12 +386,7 @@
             const availableColors = Object.keys(products[selectedDesign].variants || {});
             if (availableColors.length > 0) {
                 // Map the first available color to its display key
-                const colorNameMap = {
-                    'French Navy': 'french-navy',
-                    'Black': 'black',
-                    'Anthracite': 'anthracite'
-                };
-                selectedColor = colorNameMap[availableColors[0]] || 'black';
+                selectedColor = reverseColorMapping[availableColors[0]] || 'black';
             } else {
                 selectedColor = 'black'; // Default to black for dark design
             }
@@ -416,11 +411,7 @@
             const availableColors = Object.keys(products[selectedDesign].variants || {});
             if (availableColors.length > 0) {
                 // Map the first available color to its display key
-                const colorNameMap = {
-                    'White': 'white',
-                    'Heather Grey': 'heather-grey'
-                };
-                selectedColor = colorNameMap[availableColors[0]] || 'white';
+                selectedColor = reverseColorMapping[availableColors[0]] || 'white';
             } else {
                 selectedColor = 'white'; // Default to white for light design
             }
@@ -469,6 +460,9 @@
                 // Get the current product data
                 const currentProduct = products[selectedDesign];
                 
+                // Convert display color key to Printful API color name
+                const printfulColorName = colorMapping[selectedColor] || selectedColor;
+                
                 const response = await fetch('/create-payment', {
                     method: 'POST',
                     headers: {
@@ -479,7 +473,7 @@
                         quantity: quantity,
                         size: size,
                         product_id: selectedDesign,
-                        color: selectedColor,
+                        color: printfulColorName, // Send the Printful API color name
                         printful_product_id: currentProduct.printful_product_id
                     })
                 });
