@@ -93,8 +93,9 @@ class Subscriber(db.Model):
         }
 
 # --- Initialize DB ---
-@app.before_first_request
-def create_tables():
+# Remove the @app.before_first_request decorator and function
+# Instead, use app.app_context() at startup
+with app.app_context():
     db.create_all()
 
 # Weather API configuration
