@@ -232,8 +232,11 @@
                     listDiv.innerHTML = data.subscribers.map(sub => `
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
                             <div>
-                                <div class="font-medium">${sub.endpoint ? sub.endpoint.substring(0, 50) + '...' : 'Unknown'}</div>
-                                <div class="text-sm text-gray-500">${sub.timestamp || 'Unknown time'}</div>
+                                <div class="font-medium">${sub.push_token ? sub.push_token.substring(0, 30) + '...' : 'Unknown'}</div>
+                                <div class="text-sm text-gray-500">
+                                    Platform: ${sub.platform || 'N/A'} | Device: ${sub.device_type || 'N/A'}<br>
+                                    Registered: ${sub.registered_at ? new Date(sub.registered_at).toLocaleString() : 'Unknown'}
+                                </div>
                             </div>
                             <div class="text-sm text-green-600">Active</div>
                         </div>

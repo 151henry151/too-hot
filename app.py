@@ -936,6 +936,15 @@ def get_subscribers():
         'count': len(subs)
     })
 
+@app.route('/api/push-subscribers', methods=['GET'])
+def get_push_subscribers():
+    """Return all active push notification subscribers (Device table)"""
+    devices = Device.query.filter_by(is_active=True).all()
+    return jsonify({
+        'subscribers': [d.as_dict() for d in devices],
+        'count': len(devices)
+    })
+
 @app.route('/api/test-printful', methods=['GET'])
 def test_printful_api():
     """Test Printful API connection"""
