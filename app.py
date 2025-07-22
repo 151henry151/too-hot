@@ -1024,12 +1024,10 @@ def log_event(filename, event):
 @requires_auth
 def admin_dashboard():
     email_subs = [s.as_dict() for s in Subscriber.query.all()]
-    push_subs = load_json_file('push_subscriptions.json', default=[])
     notif_log = load_json_file('notification_log.json', default=[])
     trigger_log = load_json_file('trigger_log.json', default=[])
-    return render_template('admin_dashboard.html',
+    return render_template('admin.html',
         email_subs=email_subs,
-        push_subs=push_subs,
         notif_log=notif_log,
         trigger_log=trigger_log)
 
