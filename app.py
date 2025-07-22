@@ -92,6 +92,24 @@ class Subscriber(db.Model):
             'subscribed_at': self.subscribed_at
         }
 
+class Device(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    push_token = db.Column(db.String(512), unique=True, nullable=False)
+    platform = db.Column(db.String(32), nullable=False)  # 'expo', 'fcm', etc.
+    device_type = db.Column(db.String(32), nullable=False)  # 'ios', 'android'
+    registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'push_token': self.push_token,
+            'platform': self.platform,
+            'device_type': self.device_type,
+            'registered_at': self.registered_at.isoformat(),
+            'is_active': self.is_active
+        }
+
 # --- Initialize DB ---
 # Remove the @app.before_first_request decorator and function
 # Instead, use app.app_context() at startup
@@ -716,6 +734,49 @@ def unsubscribe():
         'email': email
     }), 200
 
+@app.route('/api/register-device', methods=['POST'])
+def register_device():
+    data = request.get_json()
+    push_token = data.get('push_token')
+    platform = data.get('platform', 'expo')
+    device_type = data.get('device_type', 'unknown')
+    
+    if not push_token:
+        return jsonify({'error': 'Push token is required'}), 400
+    
+    try:
+        # Check if device already exists
+        existing_device = Device.query.filter_by(push_token=push_token).first()
+        
+        if existing_device:
+            # Update existing device
+            existing_device.platform = platform
+            existing_device.device_type = device_type
+            existing_device.is_active = True
+            existing_device.registered_at = datetime.utcnow()
+        else:
+            # Create new device
+            new_device = Device(
+                push_token=push_token,
+                platform=platform,
+                device_type=device_type
+            )
+            db.session.add(new_device)
+        
+        db.session.commit()
+        
+        print(f"✅ Device registered: {platform} {device_type} - {push_token[:20]}...")
+        
+        return jsonify({
+            'message': 'Device registered successfully',
+            'device_id': existing_device.id if existing_device else new_device.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error registering device: {e}")
+        return jsonify({'error': 'Failed to register device'}), 500
+
 @app.route('/api/check-temperatures', methods=['GET'])
 def check_temperatures():
     """Check current temperatures and send notifications if conditions are met"""
@@ -764,7 +825,7 @@ def check_temperatures():
             
             # Check if current temp is TEMP_THRESHOLD+ degrees hotter than average
             if current_temp >= avg_temp + TEMP_THRESHOLD:
-                # Send notification
+                # Send email notification
                 send_notification(subscriber.email, location, current_temp, avg_temp)
                 notifications_sent.append({
                     'email': subscriber.email,
@@ -773,6 +834,10 @@ def check_temperatures():
                     'avg_temp': avg_temp,
                     'threshold': TEMP_THRESHOLD
                 })
+                
+                # Send push notification to all devices (only once per location)
+                if location not in [n['location'] for n in notifications_sent]:
+                    send_push_notification(location, current_temp, avg_temp)
                 
         except Exception as e:
             print(f"Error processing subscriber {subscriber.email}: {e}")
@@ -809,6 +874,58 @@ def send_notification(email, location, current_temp, avg_temp, years=30):
     except Exception as e:
         print(f"Failed to send notification to {email}: {e}")
 
+def send_push_notification(location, current_temp, avg_temp, years=30):
+    """Send push notification to all registered devices"""
+    try:
+        temp_diff = round(current_temp - avg_temp, 1)
+        
+        # Get all active devices
+        devices = Device.query.filter_by(is_active=True).all()
+        
+        if not devices:
+            print("No active devices to send push notifications to")
+            return
+        
+        # For Expo push notifications, we need to send to Expo's servers
+        # This is a simplified version - in production you'd use Expo's SDK
+        expo_tokens = [device.push_token for device in devices if device.platform == 'expo']
+        
+        if expo_tokens:
+            # Send to Expo push service
+            expo_url = "https://exp.host/--/api/v2/push/send"
+            
+            messages = []
+            for token in expo_tokens:
+                messages.append({
+                    "to": token,
+                    "title": f"🌡️ IT'S TOO HOT! - {location}",
+                    "body": f"Temperature is {temp_diff}°F hotter than average. Wear your shirt!",
+                    "data": {
+                        "location": location,
+                        "current_temp": current_temp,
+                        "avg_temp": avg_temp,
+                        "temp_diff": temp_diff
+                    },
+                    "sound": "default",
+                    "priority": "high"
+                })
+            
+            # Send in batches of 100 (Expo limit)
+            batch_size = 100
+            for i in range(0, len(messages), batch_size):
+                batch = messages[i:i + batch_size]
+                response = requests.post(expo_url, json=batch, headers={
+                    'Content-Type': 'application/json'
+                })
+                
+                if response.status_code == 200:
+                    print(f"✅ Push notifications sent to {len(batch)} devices")
+                else:
+                    print(f"❌ Failed to send push notifications: {response.text}")
+        
+    except Exception as e:
+        print(f"Failed to send push notifications: {e}")
+
 # --- Update /api/subscribers to use DB ---
 @app.route('/api/subscribers', methods=['GET'])
 def get_subscribers():
@@ -832,6 +949,28 @@ def test_printful_api():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/log-error', methods=['POST'])
+def log_error():
+    data = request.get_json()
+    email = data.get('email', 'tendegrees@its2hot.org')
+    error_message = data.get('error', 'No error message provided')
+    context = data.get('context', 'No context provided')
+    try:
+        subject = f"[ITS2HOT] Mobile App Error Log - {context}"
+        body = f"Error reported from mobile app:\n\nContext: {context}\nError: {error_message}\n\nFull data: {data}"
+        msg = Message(
+            subject=subject,
+            sender=app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[email],
+            body=body
+        )
+        mail.send(msg)
+        print(f"Error log email sent to {email}")
+        return jsonify({'success': True, 'message': 'Error log sent via email'})
+    except Exception as e:
+        print(f"Failed to send error log email: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- Admin Auth Decorator ---
 def check_auth(username, password):
