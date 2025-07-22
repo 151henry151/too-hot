@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "130612573310",
+    "project_id": "romp-family-enterprises",
+    "storage_bucket": "romp-family-enterprises.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130612573310:android:a2edb94b927657e3cb942f",
+        "android_client_info": {
+          "package_name": "com.chordispeak.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "130612573310-dat06chjtv1qsjlp0u3db63dosb3gt35.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBee9jmy_9CRTXKF3R0kfSQPbKh-AMLg0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "130612573310-dat06chjtv1qsjlp0u3db63dosb3gt35.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130612573310:android:64287f784fad80d9cb942f",
+        "android_client_info": {
+          "package_name": "com.romp.its2hot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "130612573310-dat06chjtv1qsjlp0u3db63dosb3gt35.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBee9jmy_9CRTXKF3R0kfSQPbKh-AMLg0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "130612573310-dat06chjtv1qsjlp0u3db63dosb3gt35.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
