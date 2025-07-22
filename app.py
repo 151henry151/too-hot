@@ -1101,6 +1101,54 @@ def admin_get_logs():
     trigger_log = load_json_file('trigger_log.json', default=[])
     return jsonify({'notification_log': notif_log, 'trigger_log': trigger_log})
 
+@app.route('/api/send-push-notification', methods=['POST'])
+def api_send_push_notification():
+    data = request.get_json()
+    title = data.get('title', 'IT\'S TOO HOT!')
+    body = data.get('body', 'Temperature alert!')
+    url = data.get('url', '/')
+    
+    devices = Device.query.filter_by(is_active=True).all()
+    expo_tokens = [device.push_token for device in devices if device.platform == 'expo']
+    if not expo_tokens:
+        return jsonify({'success': False, 'message': 'No Expo push tokens registered', 'total_subscribers': 0}), 200
+    
+    expo_url = "https://exp.host/--/api/v2/push/send"
+    messages = []
+    for token in expo_tokens:
+        messages.append({
+            "to": token,
+            "title": title,
+            "body": body,
+            "data": {"url": url},
+            "sound": "default",
+            "priority": "high"
+        })
+    batch_size = 100
+    successful_sends = 0
+    failed_sends = 0
+    errors = []
+    for i in range(0, len(messages), batch_size):
+        batch = messages[i:i + batch_size]
+        try:
+            response = requests.post(expo_url, json=batch, headers={'Content-Type': 'application/json'})
+            if response.status_code == 200:
+                successful_sends += len(batch)
+            else:
+                failed_sends += len(batch)
+                errors.append(response.text)
+        except Exception as e:
+            failed_sends += len(batch)
+            errors.append(str(e))
+    return jsonify({
+        'success': failed_sends == 0,
+        'message': 'Push notifications sent' if failed_sends == 0 else 'Some notifications failed',
+        'successful_sends': successful_sends,
+        'failed_sends': failed_sends,
+        'total_subscribers': len(expo_tokens),
+        'errors': errors
+    })
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")
