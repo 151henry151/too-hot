@@ -40,7 +40,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Email Subscribers</h3>
-                            <p class="text-2xl font-bold text-green-600" id="email-count">0</p>
+                            <p class="text-2xl font-bold text-green-600" id="email-count">{{ email_subs|length }}</p>
                         </div>
                     </div>
                 </div>
@@ -98,6 +98,38 @@
                 <div id="subscribers-list" class="space-y-2">
                     <p class="text-gray-500">No subscribers yet. Visit the main site and enable push notifications.</p>
                 </div>
+            </div>
+
+            <!-- Email Subscribers Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-envelope mr-2 text-green-600"></i>
+                    Email Subscribers
+                </h2>
+                {% if email_subs and email_subs|length > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded shadow">
+                        <thead>
+                            <tr>
+                                <th class="py-2 px-4">Email</th>
+                                <th class="py-2 px-4">Location</th>
+                                <th class="py-2 px-4">Subscribed At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in email_subs %}
+                            <tr>
+                                <td class="py-2 px-4">{{ sub.email }}</td>
+                                <td class="py-2 px-4">{{ sub.location }}</td>
+                                <td class="py-2 px-4">{{ sub.subscribed_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500">No email subscribers yet.</p>
+                {% endif %}
             </div>
 
             <!-- System Status -->
