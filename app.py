@@ -646,9 +646,10 @@ def send_order_confirmation(order_data):
         print(f"Failed to send confirmation email: {e}")
 
 def send_welcome_email(email, location):
-    """Send welcome email to new subscriber"""
+    """Send welcome email to new subscriber (HTML + plain text fallback)"""
     try:
         subject = "🌍 Welcome to the Climate Movement - IT'S TOO HOT!"
+        # Plain text fallback
         body = f"""
         Welcome to the Climate Movement!
         
@@ -676,17 +677,17 @@ def send_welcome_email(email, location):
         ---
         To unsubscribe, reply to this email with "unsubscribe"
         """
-        
+        # HTML body using new template
+        html_body = render_template('welcome_email.html', location=location)
         msg = Message(
             subject=subject,
             sender=app.config['MAIL_USERNAME'],
             recipients=[email],
-            body=body
+            body=body,
+            html=html_body
         )
-        
         mail.send(msg)
         print(f"Welcome email sent to {email}")
-        
     except Exception as e:
         print(f"Failed to send welcome email to {email}: {e}")
 
