@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLogger, logError } from '../hooks/useLogger';
 
 const { width } = Dimensions.get('window');
 
@@ -71,6 +72,7 @@ export default function ShopScreen() {
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedView, setSelectedView] = useState('front');
   const [quantity, setQuantity] = useState(1);
+  const logger = useLogger();
 
   const currentProduct = products[selectedDesign];
   const currentColor = currentProduct.colors[selectedColor];
@@ -79,36 +81,43 @@ export default function ShopScreen() {
 
   const handleBuyPress = () => {
     const total = (currentProduct.price * quantity).toFixed(2);
-    
-    Alert.alert(
-      'Purchase Confirmation',
-      `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed to PayPal?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Buy Now',
-          onPress: () => {
-            // Here you would integrate with your PayPal backend
-            Alert.alert(
-              'Redirecting to PayPal',
-              'You will be redirected to PayPal to complete your purchase.',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    // Mock PayPal redirect
-                    Alert.alert('Success', 'Payment completed! Your shirt will ship in 2-3 business days.');
-                  },
-                },
-              ]
-            );
+    logger.log('User initiated purchase', 'Shop', { product: currentProduct.name, color: currentColor.name, size: selectedSize, quantity, total });
+    try {
+      Alert.alert(
+        'Purchase Confirmation',
+        `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed to PayPal?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => logger.info('User cancelled purchase', 'Shop'),
           },
-        },
-      ]
-    );
+          {
+            text: 'Buy Now',
+            onPress: () => {
+              logger.log('User confirmed purchase, redirecting to PayPal', 'Shop');
+              // Here you would integrate with your PayPal backend
+              Alert.alert(
+                'Redirecting to PayPal',
+                'You will be redirected to PayPal to complete your purchase.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Mock PayPal redirect
+                      logger.log('Mock PayPal payment completed', 'Shop');
+                      Alert.alert('Success', 'Payment completed! Your shirt will ship in 2-3 business days.');
+                    },
+                  },
+                ]
+              );
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      logger.error('Error during purchase flow: ' + (error?.toString?.() || String(error)), 'Shop Exception');
+    }
   };
 
   const increaseQuantity = () => {

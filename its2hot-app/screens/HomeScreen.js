@@ -13,53 +13,45 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { useLogger, logError } from '../hooks/useLogger';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const logger = useLogger();
 
   const handleNotificationSignup = async () => {
     setIsLoading(true);
     try {
       if (!Device.isDevice) {
         const msg = 'Push notifications are only supported on physical devices.';
-        console.error(msg);
+        logger.error(msg, 'Device check');
         Alert.alert('Error', msg);
-        await fetch('https://its2hot.org/api/log-error', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: '151henry151@gmail.com', error: msg, context: 'Device check' })
-        });
         setIsLoading(false);
         return;
       }
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      console.log('Existing notification permission status:', existingStatus);
+      logger.info('Existing notification permission status: ' + existingStatus, 'Permissions');
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
-        console.log('Requested notification permission status:', finalStatus);
+        logger.info('Requested notification permission status: ' + finalStatus, 'Permissions');
       }
       if (finalStatus !== 'granted') {
         const msg = 'To receive temperature alerts, please enable notifications in your device settings.';
-        console.error(msg);
+        logger.warn(msg, 'Permission not granted');
         Alert.alert('Permission Required', msg, [
           { text: 'Cancel' },
           { text: 'Open Settings', onPress: () => { Alert.alert('Settings', 'Please go to your device settings and enable notifications for this app.'); }}
         ]);
-        await fetch('https://its2hot.org/api/log-error', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: '151henry151@gmail.com', error: msg, context: 'Permission not granted' })
-        });
         setIsLoading(false);
         return;
       }
       const token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log('Push token:', token);
+      logger.info('Push token: ' + token, 'Push Token');
       // Use production API endpoint for device registration
       const response = await fetch('https://its2hot.org/api/register-device', {
         method: 'POST',
@@ -68,26 +60,17 @@ export default function HomeScreen({ navigation }) {
       });
       if (response.ok) {
         setIsSubscribed(true);
+        logger.log('Device registered for push notifications', 'Register Device', { token });
         Alert.alert('Success!', 'You will now receive alerts when temperatures are 10°F+ hotter than average.', [{ text: 'OK' }]);
       } else {
         const errorData = await response.json();
         const msg = errorData.error || 'Failed to register device. Please try again.';
-        console.error('Backend error:', msg);
+        logger.error('Backend error: ' + msg, 'Backend response');
         Alert.alert('Error', msg);
-        await fetch('https://its2hot.org/api/log-error', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: '151henry151@gmail.com', error: msg, context: 'Backend response' })
-        });
       }
     } catch (error) {
-      console.error('Notification setup error:', error);
+      logger.error('Notification setup error: ' + (error?.toString?.() || String(error)), 'Exception');
       Alert.alert('Error', 'Failed to set up notifications. Please try again.');
-      await fetch('https://its2hot.org/api/log-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: '151henry151@gmail.com', error: error?.toString?.() || String(error), context: 'Exception' })
-      });
     } finally {
       setIsLoading(false);
     }
