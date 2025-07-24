@@ -831,6 +831,21 @@ def register_device():
         print(f"❌ Error registering device: {e}")
         return jsonify({'error': 'Failed to register device'}), 500
 
+@app.route('/api/unregister-device', methods=['POST'])
+def unregister_device():
+    data = request.get_json()
+    push_token = data.get('push_token')
+    if not push_token:
+        return jsonify({'error': 'Push token is required'}), 400
+    device = Device.query.filter_by(push_token=push_token).first()
+    if device:
+        device.is_active = False
+        db.session.commit()
+        print(f"✅ Device unregistered: {device.platform} {device.device_type} - {push_token[:20]}...")
+        return jsonify({'message': 'Device unregistered successfully'})
+    print(f"❌ Device not found for unregistration: {push_token[:20]}...")
+    return jsonify({'error': 'Device not found'}), 404
+
 @app.route('/api/check-temperatures', methods=['GET'])
 def check_temperatures():
     """Check current temperatures and send notifications if conditions are met"""
@@ -1072,6 +1087,34 @@ def log_event(filename, event):
     logs.append(event)
     save_json_file(filename, logs)
 
+# --- Expo Android Build URL Helper ---
+EXPO_PROJECT_ID = "cd9501a1-6d26-4451-ab0a-54631514d4fe"
+EXPO_BUILD_CACHE = {"url": None, "timestamp": 0}
+EXPO_BUILD_CACHE_TTL = 300  # 5 minutes
+
+def get_latest_expo_apk_url():
+    now = time.time()
+    if EXPO_BUILD_CACHE["url"] and now - EXPO_BUILD_CACHE["timestamp"] < EXPO_BUILD_CACHE_TTL:
+        return EXPO_BUILD_CACHE["url"]
+    try:
+        resp = requests.get(
+            f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=android&limit=1",
+            headers={"Accept": "application/json"}
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            builds = data.get("data", [])
+            if builds:
+                build = builds[0]
+                apk_url = build.get("artifacts", {}).get("applicationArchiveUrl")
+                if apk_url:
+                    EXPO_BUILD_CACHE["url"] = apk_url
+                    EXPO_BUILD_CACHE["timestamp"] = now
+                    return apk_url
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch Expo build: {e}")
+    return None
+
 # --- Admin Dashboard ---
 @app.route('/admin', methods=['GET'])
 @requires_auth
@@ -1079,10 +1122,12 @@ def admin_dashboard():
     email_subs = [s.as_dict() for s in Subscriber.query.all()]
     notif_log = load_json_file('notification_log.json', default=[])
     trigger_log = load_json_file('trigger_log.json', default=[])
+    expo_apk_url = get_latest_expo_apk_url()
     return render_template('admin.html',
         email_subs=email_subs,
         notif_log=notif_log,
-        trigger_log=trigger_log)
+        trigger_log=trigger_log,
+        expo_apk_url=expo_apk_url)
 
 # --- Resend Welcome Email ---
 @app.route('/admin/resend-welcome', methods=['POST'])

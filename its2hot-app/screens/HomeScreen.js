@@ -100,6 +100,34 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const handleNotificationDisable = async () => {
+    setIsLoading(true);
+    try {
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      logger.info('Attempting to unregister device for push notifications', 'Unregister Device', { token });
+      const response = await fetch('https://its2hot.org/api/unregister-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ push_token: token })
+      });
+      if (response.ok) {
+        setIsSubscribed(false);
+        logger.log('Device unregistered for push notifications', 'Unregister Device', { token });
+        Alert.alert('Notifications Disabled', 'You will no longer receive alerts.');
+      } else {
+        const errorData = await response.json();
+        const msg = errorData.error || 'Failed to disable notifications. Please try again.';
+        logger.error('Backend error: ' + msg, 'Backend response');
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      logger.error('Notification disable error: ' + (error?.toString?.() || String(error)), 'Exception');
+      Alert.alert('Error', 'Failed to disable notifications. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleShopPress = () => {
     navigation.navigate('Shop');
   };
@@ -148,6 +176,16 @@ export default function HomeScreen({ navigation }) {
             </>
           )}
         </TouchableOpacity>
+
+        {isSubscribed && !isLoading && (
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#ef4444', marginTop: 8 }]}
+            onPress={handleNotificationDisable}
+          >
+            <Ionicons name="notifications-off" size={20} color="white" />
+            <Text style={styles.buttonText}>Disable Notifications</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Shirt Section */}
         <View style={styles.shirtSection}>
