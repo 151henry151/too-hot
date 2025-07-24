@@ -52,7 +52,7 @@
             {% if row.time_spent >= 60 %}
               {{ (row.time_spent // 60)|int }}h{% if row.time_spent % 60 != 0 %}{{ (row.time_spent % 60)|int }}m{% endif %}
             {% else %}
-              {{ row.time_spent }}m
+              {% if row.time_spent < 1 %}1m{% else %}{{ row.time_spent }}m{% endif %}
             {% endif %}
           </td>
         </tr>
