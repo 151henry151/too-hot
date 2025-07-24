@@ -1297,18 +1297,23 @@ def test_temperature_alert():
 @requires_auth
 def time_tracking():
     try:
-        with open('commit_history.log', 'r') as f:
-            log = f.read()
-    except FileNotFoundError:
-        return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error="Commit history file not found. Please generate commit_history.log during build.")
-    lines = log.strip().split('\n')
-    commits = []
-    for line in lines:
-        parts = line.split('|', 2)
-        if len(parts) == 3:
-            commit, date_str, msg = parts
-            dt = datetime.strptime(date_str.strip(), '%Y-%m-%d %H:%M:%S %z')
+        # Fetch commit history from GitHub API (latest 100 commits)
+        api_url = 'https://api.github.com/repos/151henry151/too-hot/commits?per_page=100'
+        resp = requests.get(api_url)
+        if resp.status_code != 200:
+            raise Exception(f'GitHub API error: {resp.status_code}')
+        data = resp.json()
+        commits = []
+        for c in data:
+            commit = c['sha']
+            msg = c['commit']['message'].split('\n')[0]
+            date_str = c['commit']['committer']['date']
+            dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
             commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
+        # Sort by datetime descending (newest first)
+        commits.sort(key=lambda x: x['datetime'], reverse=True)
+    except Exception as e:
+        return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error=f"Failed to fetch commit history: {e}")
     # Calculate time spent per commit
     time_spent = []
     total_minutes = 0
