@@ -1442,31 +1442,36 @@ def time_tracking():
         time_spent.append(spent)
         total_minutes += spent
     rows = []
+    any_missing_stats = False
     for i, c in enumerate(commits):
         # Fetch lines added/deleted for this commit
         stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{c["hash"]}'
         stats_resp = requests.get(stats_url, headers=github_headers())
         if stats_resp.status_code == 200:
             stats = stats_resp.json().get('stats', {})
-            additions = stats.get('additions', 0)
-            deletions = stats.get('deletions', 0)
+            if 'additions' in stats and 'deletions' in stats:
+                additions = stats.get('additions', 0)
+                deletions = stats.get('deletions', 0)
+                lines_changed = additions + deletions
+            else:
+                lines_changed = None
+                any_missing_stats = True
         else:
-            additions = 0
-            deletions = 0
+            lines_changed = None
+            any_missing_stats = True
         rows.append({
             'hash': c['hash'][:7],
             'full_hash': c['hash'],
             'msg': c['msg'],
             'datetime': c['datetime'].strftime('%Y-%m-%d %H:%M'),
             'time_spent': time_spent[i],
-            'additions': additions,
-            'deletions': deletions
+            'lines_changed': lines_changed
         })
     total_hours = total_minutes // 60
     total_mins = total_minutes % 60
     github_cache['data'] = (rows, total_hours, total_mins, None)
     github_cache['timestamp'] = now
-    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None)
+    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None, any_missing_stats=any_missing_stats)
 
 if __name__ == '__main__':
     # Test Printful connection on startup

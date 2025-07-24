@@ -28,6 +28,11 @@
         <i class="fas fa-exclamation-triangle"></i> {{ error }}
       </div>
     {% endif %}
+    {% if any_missing_stats %}
+      <div style="color: #b91c1c; background: #fee2e2; border: 1px solid #fca5a5; padding: 12px; border-radius: 8px; margin-bottom: 1rem;">
+        <i class="fas fa-exclamation-triangle"></i> Some commit stats could not be fetched due to GitHub API limits or missing data. 'N/A' is shown for those commits.
+      </div>
+    {% endif %}
     <table>
       <thead>
         <tr>
@@ -44,7 +49,7 @@
           <td><a class="commit-link" href="https://github.com/151henry151/too-hot/commit/{{ row.full_hash }}" target="_blank">{{ row.hash }}</a></td>
           <td>{{ row.msg | replace('\\n', '<br>') | replace('\n', '<br>') | safe }}</td>
           <td>{{ row.datetime }}</td>
-          <td>{{ row.additions + row.deletions }} lines changed</td>
+          <td>{% if row.lines_changed is not none %}{{ row.lines_changed }} lines changed{% else %}N/A{% endif %}</td>
           <td>
             {% if row.time_spent >= 60 %}
               {{ (row.time_spent // 60)|int }}h{% if row.time_spent % 60 != 0 %}{{ (row.time_spent % 60)|int }}m{% endif %}
