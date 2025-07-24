@@ -88,19 +88,34 @@
                 <div id="notification-result" class="hidden mt-4 p-4 rounded-md"></div>
             </div>
 
-            <!-- Subscribers List -->
+            <!-- System Logs Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-users mr-2 text-green-600"></i>
-                    Push Subscribers
+                    <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
+                    System Logs
                 </h2>
-                
-                <div id="subscribers-list" class="space-y-2">
-                    <p class="text-gray-500">No subscribers yet. Visit the main site and enable push notifications.</p>
+                <div class="mb-4">
+                    <label class="mr-2 font-semibold">Log Type:</label>
+                    <select id="log-type" class="border rounded px-2 py-1">
+                        <option value="all">All</option>
+                        <option value="push">Push Notifications</option>
+                        <option value="debug">Debug/Error</option>
+                    </select>
+                    <button onclick="loadLogs()" class="ml-4 bg-blue-600 text-white px-4 py-1 rounded">Refresh Logs</button>
                 </div>
+                <div id="logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
             </div>
 
-            <!-- Email Subscribers Table -->
+            <!-- Push Subscribers Table with Management -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-bell mr-2 text-blue-600"></i>
+                    Push Subscribers
+                </h2>
+                <div id="push-subscribers-list" class="overflow-x-auto"></div>
+            </div>
+
+            <!-- Email Subscribers Table (unchanged) -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-envelope mr-2 text-green-600"></i>
@@ -130,6 +145,38 @@
                 {% else %}
                 <p class="text-gray-500">No email subscribers yet.</p>
                 {% endif %}
+            </div>
+
+            <!-- Test Actions Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-vial mr-2 text-yellow-600"></i>
+                    Test Actions
+                </h2>
+                <div class="mb-4">
+                    <h3 class="font-semibold mb-2">Test Email Notification</h3>
+                    <input type="email" id="test-email-input" placeholder="Enter email address" class="border px-2 py-1 rounded mr-2">
+                    <button onclick="sendTestEmail()" class="bg-green-600 text-white px-4 py-1 rounded">Send Test Email</button>
+                    <span id="test-email-result" class="ml-2 text-sm"></span>
+                </div>
+                <div class="mb-4">
+                    <h3 class="font-semibold mb-2">Test Push Notification</h3>
+                    <input type="text" id="test-push-title" placeholder="Title" class="border px-2 py-1 rounded mr-2" value="Test Notification">
+                    <input type="text" id="test-push-body" placeholder="Body" class="border px-2 py-1 rounded mr-2" value="This is a test push notification.">
+                    <button onclick="sendTestPush()" class="bg-blue-600 text-white px-4 py-1 rounded">Send Test Push</button>
+                    <span id="test-push-result" class="ml-2 text-sm"></span>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">Test Temperature Alert</h3>
+                    <form id="test-alert-form" onsubmit="return false;">
+                        <input type="text" id="alert-location" placeholder="Location" class="border px-2 py-1 rounded mr-2" value="New York">
+                        <input type="number" id="alert-current-temp" placeholder="Current Temp (°F)" class="border px-2 py-1 rounded mr-2">
+                        <input type="number" id="alert-avg-temp" placeholder="Avg Temp (°F)" class="border px-2 py-1 rounded mr-2">
+                        <label class="mr-2"><input type="checkbox" id="alert-use-real-data"> Use Real Data</label>
+                        <button onclick="sendTestAlert()" class="bg-yellow-600 text-white px-4 py-1 rounded">Test Alert</button>
+                        <span id="test-alert-result" class="ml-2 text-sm"></span>
+                    </form>
+                </div>
             </div>
 
             <!-- System Status -->
@@ -192,6 +239,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadSubscribers();
             loadStats();
+            loadLogs();
+            loadPushSubscribers();
         });
 
         // Send notification
@@ -259,23 +308,7 @@
             fetch('/api/push-subscribers')
             .then(response => response.json())
             .then(data => {
-                const listDiv = document.getElementById('subscribers-list');
-                if (data.subscribers && data.subscribers.length > 0) {
-                    listDiv.innerHTML = data.subscribers.map(sub => `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                            <div>
-                                <div class="font-medium">${sub.push_token ? sub.push_token.substring(0, 30) + '...' : 'Unknown'}</div>
-                                <div class="text-sm text-gray-500">
-                                    Platform: ${sub.platform || 'N/A'} | Device: ${sub.device_type || 'N/A'}<br>
-                                    Registered: ${sub.registered_at ? new Date(sub.registered_at).toLocaleString() : 'Unknown'}
-                                </div>
-                            </div>
-                            <div class="text-sm text-green-600">Active</div>
-                        </div>
-                    `).join('');
-                } else {
-                    listDiv.innerHTML = '<p class="text-gray-500">No subscribers yet. Visit the main site and enable push notifications.</p>';
-                }
+                document.getElementById('subscriber-count').textContent = data.subscribers ? data.subscribers.length : 0;
             })
             .catch(error => {
                 console.error('Error loading subscribers:', error);
@@ -303,6 +336,110 @@
             document.getElementById('notification-title').value = 'Test Climate Alert';
             document.getElementById('notification-body').value = 'This is a test notification from the Too Hot climate awareness campaign!';
             sendNotification('Test Climate Alert', 'This is a test notification from the Too Hot climate awareness campaign!');
+        }
+
+        // --- System Logs ---
+        function loadLogs() {
+            const type = document.getElementById('log-type').value;
+            fetch(`/api/logs?type=${type}`)
+                .then(r => r.json())
+                .then(data => {
+                    let logsHtml = '';
+                    if (type === 'push' && data.logs) {
+                        logsHtml = data.logs.map(l => `<div>[${l.timestamp}] <b>${l.status}</b> - ${l.title || ''} (${l.device_type || ''}) ${l.error ? '<span class="text-red-600">' + l.error + '</span>' : ''}</div>`).join('');
+                    } else if (type === 'debug' && data.logs) {
+                        logsHtml = data.logs.map(l => `<div>[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})</div>`).join('');
+                    } else if (data.push_logs || data.debug_logs) {
+                        logsHtml = '<b>Push Logs:</b><br>' + data.push_logs.map(l => `[${l.timestamp}] <b>${l.status}</b> - ${l.title || ''} (${l.device_type || ''}) ${l.error ? '<span class="text-red-600">' + l.error + '</span>' : ''}`).join('<br>') + '<br><b>Debug Logs:</b><br>' + data.debug_logs.map(l => `[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})`).join('<br>');
+                    } else {
+                        logsHtml = '<i>No logs found.</i>';
+                    }
+                    document.getElementById('logs-list').innerHTML = logsHtml;
+                });
+        }
+
+        // --- Push Subscribers Management ---
+        function loadPushSubscribers() {
+            fetch('/api/push-subscribers')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.subscribers && data.subscribers.length > 0) {
+                        let html = `<table class='min-w-full bg-white rounded shadow'><thead><tr><th class='py-2 px-4'>ID</th><th class='py-2 px-4'>Token</th><th class='py-2 px-4'>Platform</th><th class='py-2 px-4'>Device</th><th class='py-2 px-4'>Registered</th><th class='py-2 px-4'>Actions</th></tr></thead><tbody>`;
+                        html += data.subscribers.map(sub => `
+                            <tr>
+                                <td class='py-2 px-4'>${sub.id}</td>
+                                <td class='py-2 px-4'>${sub.push_token ? sub.push_token.substring(0, 30) + '...' : 'Unknown'}</td>
+                                <td class='py-2 px-4'>${sub.platform || 'N/A'}</td>
+                                <td class='py-2 px-4'>${sub.device_type || 'N/A'}</td>
+                                <td class='py-2 px-4'>${sub.registered_at ? new Date(sub.registered_at).toLocaleString() : 'Unknown'}</td>
+                                <td class='py-2 px-4'><button onclick="deletePushSubscriber(${sub.id})" class='bg-red-600 text-white px-2 py-1 rounded'>Delete</button></td>
+                            </tr>
+                        `).join('');
+                        html += '</tbody></table>';
+                        document.getElementById('push-subscribers-list').innerHTML = html;
+                    } else {
+                        document.getElementById('push-subscribers-list').innerHTML = '<p class="text-gray-500">No push subscribers yet.</p>';
+                    }
+                });
+        }
+        function deletePushSubscriber(id) {
+            if (!confirm('Are you sure you want to delete this push subscriber?')) return;
+            fetch(`/api/push-subscriber/${id}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message || 'Deleted');
+                    loadPushSubscribers();
+                });
+        }
+
+        // --- Test Actions ---
+        function sendTestEmail() {
+            const email = document.getElementById('test-email-input').value;
+            if (!email) return alert('Enter an email address');
+            fetch('/admin/send-test-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('test-email-result').textContent = data.message || data.error || '';
+                });
+        }
+        function sendTestPush() {
+            const title = document.getElementById('test-push-title').value;
+            const body = document.getElementById('test-push-body').value;
+            fetch('/api/send-push-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, body, url: '/' })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('test-push-result').textContent = data.message || data.error || '';
+                    loadLogs();
+                });
+        }
+        function sendTestAlert() {
+            const location = document.getElementById('alert-location').value;
+            const useReal = document.getElementById('alert-use-real-data').checked;
+            const currentTemp = document.getElementById('alert-current-temp').value;
+            const avgTemp = document.getElementById('alert-avg-temp').value;
+            fetch('/api/test-temperature-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    location,
+                    use_real_data: useReal,
+                    current_temp: currentTemp ? parseFloat(currentTemp) : undefined,
+                    avg_temp: avgTemp ? parseFloat(avgTemp) : undefined
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('test-alert-result').textContent = data.success ? `Alert: ${data.location}, Current: ${data.current_temp}, Avg: ${data.avg_temp}, Diff: ${data.temp_diff}` : (data.error || 'Error');
+                    loadLogs();
+                });
         }
     </script>
 </body>
