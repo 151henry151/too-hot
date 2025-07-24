@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,21 @@ export default function HomeScreen({ navigation }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const logger = useLogger();
+
+  useEffect(() => {
+    // Listener for notifications received in foreground
+    const foregroundSub = Notifications.addNotificationReceivedListener(notification => {
+      logger.info('Notification received (foreground)', 'Push Notification', { notification });
+    });
+    // Listener for notifications tapped/opened
+    const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
+      logger.info('Notification tapped/opened', 'Push Notification', { response });
+    });
+    return () => {
+      foregroundSub.remove();
+      responseSub.remove();
+    };
+  }, []);
 
   const handleNotificationSignup = async () => {
     setIsLoading(true);

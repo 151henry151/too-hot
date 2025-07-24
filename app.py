@@ -1491,6 +1491,12 @@ def admin_delete_subscriber():
     db.session.commit()
     return jsonify({'success': True, 'message': f'Subscriber {email} deleted'})
 
+@app.route('/admin/mobile-logs', methods=['GET'])
+@requires_auth
+def admin_mobile_logs():
+    logs = DebugLog.query.filter(DebugLog.source.in_(['android', 'ios'])).order_by(DebugLog.timestamp.desc()).limit(100).all()
+    return jsonify({'logs': [l.as_dict() for l in logs]})
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")
