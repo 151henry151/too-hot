@@ -13,6 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 import subprocess
 import time
 import re
+from pytz import timezone
 
 load_dotenv()
 
@@ -1459,11 +1460,14 @@ def time_tracking():
         else:
             lines_changed = None
             any_missing_stats = True
+        # Format datetime as MM-DD h:mm AM/PM in US Eastern Time
+        dt_eastern = c['datetime'].astimezone(timezone('US/Eastern'))
+        dt_str = dt_eastern.strftime('%m-%d %I:%M %p')
         rows.append({
             'hash': c['hash'][:7],
             'full_hash': c['hash'],
             'msg': c['msg'],
-            'datetime': c['datetime'].strftime('%Y-%m-%d %H:%M'),
+            'datetime': dt_str,
             'time_spent': time_spent[i],
             'lines_changed': lines_changed
         })
