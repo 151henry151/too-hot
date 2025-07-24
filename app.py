@@ -1393,6 +1393,12 @@ def time_tracking():
             commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
+        # Filter out time tracking commits
+        filtered_commits = []
+        for c in commits:
+            if 'time tracking' not in c['msg'].lower():
+                filtered_commits.append(c)
+        commits = filtered_commits
     except Exception as e:
         github_cache['data'] = ([], 0, 0, f"Failed to fetch commit history: {e}")
         github_cache['timestamp'] = now
