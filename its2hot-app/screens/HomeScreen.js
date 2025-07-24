@@ -22,6 +22,15 @@ export default function HomeScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const logger = useLogger();
 
+  // Check notification permission on mount
+  useEffect(() => {
+    const checkNotificationStatus = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      setIsSubscribed(status === 'granted');
+    };
+    checkNotificationStatus();
+  }, []);
+
   useEffect(() => {
     // Listener for notifications received in foreground
     const foregroundSub = Notifications.addNotificationReceivedListener(notification => {
