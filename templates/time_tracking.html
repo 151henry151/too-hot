@@ -42,7 +42,7 @@
         {% for row in rows %}
         <tr>
           <td><a class="commit-link" href="https://github.com/151henry151/too-hot/commit/{{ row.full_hash }}" target="_blank">{{ row.hash }}</a></td>
-          <td>{{ row.msg | replace('\n', '<br>') | safe }}</td>
+          <td>{{ row.msg | replace('\\n', '<br>') | replace('\n', '<br>') | safe }}</td>
           <td>{{ row.datetime }}</td>
           <td>
             <span style="color: #059669; font-weight: bold;">+{{ row.additions }}</span>
