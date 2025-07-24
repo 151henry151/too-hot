@@ -11,6 +11,7 @@ from functools import wraps
 import base64
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
+import time
 
 load_dotenv()
 
@@ -1355,13 +1356,31 @@ def test_temperature_alert():
         'temp_diff': round(current_temp - avg_temp, 1)
     })
 
+import os
+import time
+
+github_cache = {'data': None, 'timestamp': 0}
+GITHUB_CACHE_TTL = 3600  # 1 hour
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+
+def github_headers():
+    headers = {'Accept': 'application/vnd.github+json'}
+    if GITHUB_TOKEN:
+        headers['Authorization'] = f'token {GITHUB_TOKEN}'
+    return headers
+
 @app.route('/admin/time-tracking')
 @requires_auth
 def time_tracking():
+    now = time.time()
+    # Use cache if available and not expired
+    if github_cache['data'] and now - github_cache['timestamp'] < GITHUB_CACHE_TTL:
+        rows, total_hours, total_mins, error = github_cache['data']
+        return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=error)
     try:
         # Fetch commit history from GitHub API (latest 100 commits)
         api_url = 'https://api.github.com/repos/151henry151/too-hot/commits?per_page=100'
-        resp = requests.get(api_url)
+        resp = requests.get(api_url, headers=github_headers())
         if resp.status_code != 200:
             raise Exception(f'GitHub API error: {resp.status_code}')
         data = resp.json()
@@ -1375,6 +1394,8 @@ def time_tracking():
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
     except Exception as e:
+        github_cache['data'] = ([], 0, 0, f"Failed to fetch commit history: {e}")
+        github_cache['timestamp'] = now
         return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error=f"Failed to fetch commit history: {e}")
     # Calculate time spent per commit
     time_spent = []
@@ -1388,7 +1409,7 @@ def time_tracking():
             if delta >= 120:
                 # Estimate by lines changed (insertions + deletions), capped at 180 min
                 stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{commits[i+1]["hash"]}'
-                stats_resp = requests.get(stats_url)
+                stats_resp = requests.get(stats_url, headers=github_headers())
                 if stats_resp.status_code == 200:
                     stats = stats_resp.json().get('stats', {})
                     lines = stats.get('additions', 0) + stats.get('deletions', 0)
@@ -1403,7 +1424,7 @@ def time_tracking():
     for i, c in enumerate(commits):
         # Fetch lines added/deleted for this commit
         stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{c["hash"]}'
-        stats_resp = requests.get(stats_url)
+        stats_resp = requests.get(stats_url, headers=github_headers())
         if stats_resp.status_code == 200:
             stats = stats_resp.json().get('stats', {})
             additions = stats.get('additions', 0)
@@ -1422,6 +1443,8 @@ def time_tracking():
         })
     total_hours = total_minutes // 60
     total_mins = total_minutes % 60
+    github_cache['data'] = (rows, total_hours, total_mins, None)
+    github_cache['timestamp'] = now
     return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None)
 
 if __name__ == '__main__':
