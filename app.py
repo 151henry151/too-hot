@@ -1400,12 +1400,24 @@ def time_tracking():
         total_minutes += spent
     rows = []
     for i, c in enumerate(commits):
+        # Fetch lines added/deleted for this commit
+        stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{c["hash"]}'
+        stats_resp = requests.get(stats_url)
+        if stats_resp.status_code == 200:
+            stats = stats_resp.json().get('stats', {})
+            additions = stats.get('additions', 0)
+            deletions = stats.get('deletions', 0)
+        else:
+            additions = 0
+            deletions = 0
         rows.append({
             'hash': c['hash'][:7],
             'full_hash': c['hash'],
             'msg': c['msg'],
             'datetime': c['datetime'].strftime('%Y-%m-%d %H:%M'),
-            'time_spent': time_spent[i]
+            'time_spent': time_spent[i],
+            'additions': additions,
+            'deletions': deletions
         })
     total_hours = total_minutes // 60
     total_mins = total_minutes % 60
