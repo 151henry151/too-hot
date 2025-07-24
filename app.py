@@ -1399,10 +1399,16 @@ def time_tracking():
             commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
-        # Filter out time tracking commits (various spellings)
+        # Filter out time tracking commits (robust substring check)
         filtered_commits = []
         for c in commits:
-            if not re.search(r'time[\s-]?tracking', c['msg'], re.IGNORECASE):
+            msg_lc = c['msg'].lower()
+            if not (
+                'time tracking' in msg_lc or
+                'time-tracking' in msg_lc or
+                'timetracking' in msg_lc or
+                'time_tracking' in msg_lc
+            ):
                 filtered_commits.append(c)
         commits = filtered_commits
     except Exception as e:
