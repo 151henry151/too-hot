@@ -1097,9 +1097,13 @@ def get_latest_expo_apk_url():
     if EXPO_BUILD_CACHE["url"] and now - EXPO_BUILD_CACHE["timestamp"] < EXPO_BUILD_CACHE_TTL:
         return EXPO_BUILD_CACHE["url"]
     try:
+        expo_token = os.getenv('EXPO_TOKEN')
+        headers = {"Accept": "application/json"}
+        if expo_token:
+            headers["Authorization"] = f"Bearer {expo_token}"
         resp = requests.get(
             f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=android&limit=1",
-            headers={"Accept": "application/json"}
+            headers=headers
         )
         if resp.status_code == 200:
             data = resp.json()
@@ -1111,6 +1115,8 @@ def get_latest_expo_apk_url():
                     EXPO_BUILD_CACHE["url"] = apk_url
                     EXPO_BUILD_CACHE["timestamp"] = now
                     return apk_url
+        else:
+            print(f"[ERROR] Expo API returned status {resp.status_code}: {resp.text}")
     except Exception as e:
         print(f"[ERROR] Failed to fetch Expo build: {e}")
     return None

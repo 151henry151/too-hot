@@ -19,6 +19,30 @@
                 <p class="text-gray-600">Manage push notifications and view system status</p>
             </div>
 
+            <!-- Expo Android Build QR Code Section -->
+            {% if expo_apk_url %}
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
+              <h2 class="text-2xl font-bold text-gray-800 mb-2">
+                <i class="fab fa-android mr-2 text-green-600"></i>
+                Latest Android App Build
+              </h2>
+              <p class="text-gray-600 mb-4">Scan to install the latest preview build on your device:</p>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_apk_url }}" alt="Expo Android Build QR Code" class="mb-4" style="width:200px;height:200px;"/>
+              <a href="{{ expo_apk_url }}" target="_blank" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors font-semibold">
+                <i class="fas fa-download mr-2"></i>Download APK
+              </a>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
+              <h2 class="text-2xl font-bold text-gray-800 mb-2">
+                <i class="fab fa-android mr-2 text-green-600"></i>
+                Latest Android App Build
+              </h2>
+              <p class="text-gray-600">No Android build available yet.</p>
+            </div>
+            {% endif %}
+            <!-- End Expo Android Build QR Code Section -->
+
             <!-- Stats Cards -->
             <div class="grid md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6">
