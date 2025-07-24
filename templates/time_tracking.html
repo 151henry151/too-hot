@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Time Tracking - Too Hot Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600,700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f7fafc; margin: 0; padding: 0; }
+    .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+    h1 { font-size: 2.2rem; margin-bottom: 1.5rem; color: #222; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { padding: 10px 12px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 600; color: #333; }
+    tr:nth-child(even) { background: #f9fafb; }
+    tr:hover { background: #e0e7ef; }
+    .commit-link { color: #2563eb; text-decoration: none; font-family: monospace; }
+    .commit-link:hover { text-decoration: underline; }
+    .footer { font-size: 1.1rem; color: #444; margin-top: 2rem; }
+    .total { font-weight: bold; color: #059669; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><i class="fas fa-clock"></i> Project Time Tracking</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Commit</th>
+          <th>Commit Message</th>
+          <th>Commit Time</th>
+          <th>Time Spent (min)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a class="commit-link" href="https://github.com/151henry151/too-hot/commit/{{ row.full_hash }}" target="_blank">{{ row.hash }}</a></td>
+          <td>{{ row.msg }}</td>
+          <td>{{ row.datetime }}</td>
+          <td>{{ row.time_spent }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="footer">
+      <span class="total">Total Time Spent: {{ total_hours }}h {{ total_mins }}m</span>
+    </div>
+    <div style="margin-top: 2rem;">
+      <a href="/admin" style="color: #2563eb; text-decoration: none;"><i class="fas fa-arrow-left"></i> Back to Admin Dashboard</a>
+    </div>
+  </div>
+</body>
+</html> 

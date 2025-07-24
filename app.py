@@ -10,6 +10,7 @@ import paypalrestsdk
 from functools import wraps
 import base64
 from flask_sqlalchemy import SQLAlchemy
+import subprocess
 
 load_dotenv()
 
@@ -1291,6 +1292,47 @@ def test_temperature_alert():
         'avg_temp': avg_temp,
         'temp_diff': round(current_temp - avg_temp, 1)
     })
+
+@app.route('/admin/time-tracking')
+@requires_auth
+def time_tracking():
+    # Get git log
+    log = subprocess.check_output([
+        'git', 'log', '--pretty=format:%H|%ad|%s', '--date=iso'
+    ]).decode('utf-8')
+    lines = log.strip().split('\n')
+    commits = []
+    for line in lines:
+        parts = line.split('|', 2)
+        if len(parts) == 3:
+            commit, date_str, msg = parts
+            dt = datetime.strptime(date_str.strip(), '%Y-%m-%d %H:%M:%S %z')
+            commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
+    # Calculate time spent per commit
+    time_spent = []
+    total_minutes = 0
+    for i in range(len(commits)):
+        if i == 0:
+            spent = 0
+        else:
+            delta = (commits[i-1]['datetime'] - commits[i]['datetime']).total_seconds() / 60
+            # Cap at 120 minutes (2 hours)
+            spent = min(max(int(delta), 0), 120)
+        time_spent.append(spent)
+        total_minutes += spent
+    # Prepare rows for template
+    rows = []
+    for i, c in enumerate(commits):
+        rows.append({
+            'hash': c['hash'][:7],
+            'full_hash': c['hash'],
+            'msg': c['msg'],
+            'datetime': c['datetime'].strftime('%Y-%m-%d %H:%M'),
+            'time_spent': time_spent[i]
+        })
+    total_hours = total_minutes // 60
+    total_mins = total_minutes % 60
+    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins)
 
 if __name__ == '__main__':
     # Test Printful connection on startup
