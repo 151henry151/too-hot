@@ -1379,14 +1379,15 @@ def time_tracking():
     # Calculate time spent per commit
     time_spent = []
     total_minutes = 0
-    for i in range(len(commits)):
-        if i == 0:
-            spent = 190  # Special case for first commit: 3h10m
+    n = len(commits)
+    for i in range(n):
+        if i == n - 1:
+            spent = 190  # Special case for initial commit (oldest)
         else:
-            delta = (commits[i-1]['datetime'] - commits[i]['datetime']).total_seconds() / 60
+            delta = (commits[i]['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
             if delta >= 120:
                 # Estimate by lines changed (insertions + deletions), capped at 180 min
-                stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{commits[i]["hash"]}'
+                stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{commits[i+1]["hash"]}'
                 stats_resp = requests.get(stats_url)
                 if stats_resp.status_code == 200:
                     stats = stats_resp.json().get('stats', {})
