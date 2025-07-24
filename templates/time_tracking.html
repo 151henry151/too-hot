@@ -44,10 +44,7 @@
           <td><a class="commit-link" href="https://github.com/151henry151/too-hot/commit/{{ row.full_hash }}" target="_blank">{{ row.hash }}</a></td>
           <td>{{ row.msg | replace('\\n', '<br>') | replace('\n', '<br>') | safe }}</td>
           <td>{{ row.datetime }}</td>
-          <td>
-            <span style="color: #059669; font-weight: bold;">+{{ row.additions }}</span>
-            <span style="color: #dc2626; font-weight: bold; margin-left: 4px;">−{{ row.deletions }}</span>
-          </td>
+          <td>{{ row.additions + row.deletions }} lines changed</td>
           <td>
             {% if row.time_spent >= 60 %}
               {{ (row.time_spent // 60)|int }}h{% if row.time_spent % 60 != 0 %}{{ (row.time_spent % 60)|int }}m{% endif %}
