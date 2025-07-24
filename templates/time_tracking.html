@@ -23,6 +23,11 @@
 <body>
   <div class="container">
     <h1><i class="fas fa-clock"></i> Project Time Tracking</h1>
+    {% if error %}
+      <div style="color: #b91c1c; background: #fee2e2; border: 1px solid #fca5a5; padding: 16px; border-radius: 8px; margin-bottom: 2rem;">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
+      </div>
+    {% endif %}
     <table>
       <thead>
         <tr>

@@ -1296,10 +1296,11 @@ def test_temperature_alert():
 @app.route('/admin/time-tracking')
 @requires_auth
 def time_tracking():
-    # Get git log
-    log = subprocess.check_output([
-        'git', 'log', '--pretty=format:%H|%ad|%s', '--date=iso'
-    ]).decode('utf-8')
+    try:
+        with open('commit_history.log', 'r') as f:
+            log = f.read()
+    except FileNotFoundError:
+        return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error="Commit history file not found. Please generate commit_history.log during build.")
     lines = log.strip().split('\n')
     commits = []
     for line in lines:
@@ -1316,11 +1317,9 @@ def time_tracking():
             spent = 0
         else:
             delta = (commits[i-1]['datetime'] - commits[i]['datetime']).total_seconds() / 60
-            # Cap at 120 minutes (2 hours)
             spent = min(max(int(delta), 0), 120)
         time_spent.append(spent)
         total_minutes += spent
-    # Prepare rows for template
     rows = []
     for i, c in enumerate(commits):
         rows.append({
@@ -1332,7 +1331,7 @@ def time_tracking():
         })
     total_hours = total_minutes // 60
     total_mins = total_minutes % 60
-    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins)
+    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None)
 
 if __name__ == '__main__':
     # Test Printful connection on startup
