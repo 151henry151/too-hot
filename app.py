@@ -110,6 +110,55 @@ class Device(db.Model):
             'is_active': self.is_active
         }
 
+# --- New Models for Logging ---
+class PushNotificationLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, nullable=True)
+    push_token = db.Column(db.String(512), nullable=True)
+    platform = db.Column(db.String(32), nullable=True)
+    device_type = db.Column(db.String(32), nullable=True)
+    title = db.Column(db.String(256), nullable=True)
+    body = db.Column(db.String(1024), nullable=True)
+    data = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(32), nullable=True)  # success/failure
+    error = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'push_token': self.push_token,
+            'platform': self.platform,
+            'device_type': self.device_type,
+            'title': self.title,
+            'body': self.body,
+            'data': self.data,
+            'status': self.status,
+            'error': self.error,
+            'timestamp': self.timestamp.isoformat()
+        }
+
+class DebugLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    source = db.Column(db.String(64), nullable=True)  # 'android', 'ios', 'backend', etc.
+    device_id = db.Column(db.Integer, nullable=True)
+    email = db.Column(db.String(256), nullable=True)
+    message = db.Column(db.Text, nullable=False)
+    context = db.Column(db.String(256), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'source': self.source,
+            'device_id': self.device_id,
+            'email': self.email,
+            'message': self.message,
+            'context': self.context,
+            'timestamp': self.timestamp.isoformat()
+        }
+
 # --- Initialize DB ---
 # Remove the @app.before_first_request decorator and function
 # Instead, use app.app_context() at startup
@@ -1147,6 +1196,100 @@ def api_send_push_notification():
         'failed_sends': failed_sends,
         'total_subscribers': len(expo_tokens),
         'errors': errors
+    })
+
+# --- API: Log Push Notification Attempt ---
+@app.route('/api/log-push', methods=['POST'])
+def log_push():
+    data = request.get_json()
+    log = PushNotificationLog(
+        device_id=data.get('device_id'),
+        push_token=data.get('push_token'),
+        platform=data.get('platform'),
+        device_type=data.get('device_type'),
+        title=data.get('title'),
+        body=data.get('body'),
+        data=json.dumps(data.get('data')) if data.get('data') else None,
+        status=data.get('status'),
+        error=data.get('error')
+    )
+    db.session.add(log)
+    db.session.commit()
+    return jsonify({'success': True, 'log_id': log.id})
+
+# --- API: Log Debug/Error Info ---
+@app.route('/api/log-debug', methods=['POST'])
+def log_debug():
+    data = request.get_json()
+    log = DebugLog(
+        source=data.get('source'),
+        device_id=data.get('device_id'),
+        email=data.get('email'),
+        message=data.get('message'),
+        context=data.get('context')
+    )
+    db.session.add(log)
+    db.session.commit()
+    return jsonify({'success': True, 'log_id': log.id})
+
+# --- API: Fetch Logs ---
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    log_type = request.args.get('type', 'all')
+    limit = int(request.args.get('limit', 100))
+    if log_type == 'push':
+        logs = PushNotificationLog.query.order_by(PushNotificationLog.timestamp.desc()).limit(limit).all()
+        return jsonify({'logs': [l.as_dict() for l in logs]})
+    elif log_type == 'debug':
+        logs = DebugLog.query.order_by(DebugLog.timestamp.desc()).limit(limit).all()
+        return jsonify({'logs': [l.as_dict() for l in logs]})
+    else:
+        push_logs = PushNotificationLog.query.order_by(PushNotificationLog.timestamp.desc()).limit(limit).all()
+        debug_logs = DebugLog.query.order_by(DebugLog.timestamp.desc()).limit(limit).all()
+        return jsonify({
+            'push_logs': [l.as_dict() for l in push_logs],
+            'debug_logs': [l.as_dict() for l in debug_logs]
+        })
+
+# --- API: Delete/Unsubscribe Push Subscriber ---
+@app.route('/api/push-subscriber/<int:device_id>', methods=['DELETE'])
+def delete_push_subscriber(device_id):
+    device = Device.query.get(device_id)
+    if not device:
+        return jsonify({'success': False, 'error': 'Device not found'}), 404
+    db.session.delete(device)
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'Device {device_id} deleted'})
+
+# --- API: Test Temperature Alert (Custom or Real Data) ---
+@app.route('/api/test-temperature-alert', methods=['POST'])
+def test_temperature_alert():
+    data = request.get_json()
+    location = data.get('location', 'New York')
+    use_real_data = data.get('use_real_data', False)
+    if use_real_data:
+        # Fetch real weather data
+        current_url = f"{WEATHER_BASE_URL}/current.json"
+        current_params = {'key': WEATHER_API_KEY, 'q': location, 'aqi': 'no'}
+        current_response = requests.get(current_url, params=current_params)
+        if current_response.status_code != 200:
+            return jsonify({'success': False, 'error': 'Failed to fetch current weather'}), 500
+        current_data = current_response.json()
+        current_temp = current_data['current']['temp_f']
+        today = datetime.now()
+        # For demo, use a fixed average or fetch historical if needed
+        avg_temp = 85
+    else:
+        current_temp = data.get('current_temp', 100)
+        avg_temp = data.get('avg_temp', 85)
+    # Trigger alert logic (send emails, push notifications, etc.)
+    # For now, just log and return the data
+    return jsonify({
+        'success': True,
+        'location': location,
+        'current_temp': current_temp,
+        'avg_temp': avg_temp,
+        'temp_diff': round(current_temp - avg_temp, 1)
     })
 
 if __name__ == '__main__':
