@@ -9,6 +9,8 @@ steps:
         npm install
         eas build --platform android --profile preview --non-interactive --no-wait
     secretEnv: ['EXPO_TOKEN']
+    options:
+      logging: CLOUD_LOGGING_ONLY
 
 availableSecrets:
   secretManager:
