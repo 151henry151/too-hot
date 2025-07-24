@@ -1,0 +1,16 @@
+steps:
+  - name: 'node:18'
+    entrypoint: 'bash'
+    dir: 'its2hot-app'
+    args:
+      - '-c'
+      - |
+        npm install -g eas-cli
+        npm install
+        eas build --platform android --profile preview --non-interactive --no-wait
+    secretEnv: ['EXPO_TOKEN']
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/EXPO_TOKEN/versions/latest
+      env: 'EXPO_TOKEN' 
