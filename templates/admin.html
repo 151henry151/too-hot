@@ -44,6 +44,30 @@
             {% endif %}
             <!-- End Expo Android Build QR Code Section -->
 
+            <!-- Expo iOS Build QR Code Section -->
+            {% if expo_ios_url %}
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
+              <h2 class="text-2xl font-bold text-gray-800 mb-2">
+                <i class="fab fa-apple mr-2 text-gray-800"></i>
+                Latest iPhone App Build
+              </h2>
+              <p class="text-gray-600 mb-4">Scan to install the latest preview build on your iOS device:</p>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_ios_url }}" alt="Expo iOS Build QR Code" class="mb-4" style="width:200px;height:200px;"/>
+              <a href="{{ expo_ios_url }}" target="_blank" class="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors font-semibold">
+                <i class="fas fa-download mr-2"></i>Download iOS Build
+              </a>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
+              <h2 class="text-2xl font-bold text-gray-800 mb-2">
+                <i class="fab fa-apple mr-2 text-gray-800"></i>
+                Latest iPhone App Build
+              </h2>
+              <p class="text-gray-600">No iOS build available yet.</p>
+            </div>
+            {% endif %}
+            <!-- End Expo iOS Build QR Code Section -->
+
             <!-- Stats Cards -->
             <div class="grid md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6">

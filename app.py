@@ -14,6 +14,9 @@ import subprocess
 import time
 import re
 from pytz import timezone
+import threading
+from sqlalchemy import and_
+import atexit
 
 load_dotenv()
 
@@ -842,6 +845,20 @@ def unregister_device():
         device.is_active = False
         db.session.commit()
         print(f"✅ Device unregistered: {device.platform} {device.device_type} - {push_token[:20]}...")
+        # Add log entry for unregistration
+        log = PushNotificationLog(
+            device_id=device.id,
+            push_token=device.push_token,
+            platform=device.platform,
+            device_type=device.device_type,
+            title='Push notifications disabled',
+            body='User disabled push notifications',
+            data=None,
+            status='unregistered',
+            error=None
+        )
+        db.session.add(log)
+        db.session.commit()
         return jsonify({'message': 'Device unregistered successfully'})
     print(f"❌ Device not found for unregistration: {push_token[:20]}...")
     return jsonify({'error': 'Device not found'}), 404
@@ -1121,6 +1138,38 @@ def get_latest_expo_apk_url():
         print(f"[ERROR] Failed to fetch Expo build: {e}")
     return None
 
+EXPO_IOS_BUILD_CACHE = {"url": None, "timestamp": 0}
+EXPO_IOS_BUILD_CACHE_TTL = 300  # 5 minutes
+
+def get_latest_expo_ios_url():
+    now = time.time()
+    if EXPO_IOS_BUILD_CACHE["url"] and now - EXPO_IOS_BUILD_CACHE["timestamp"] < EXPO_IOS_BUILD_CACHE_TTL:
+        return EXPO_IOS_BUILD_CACHE["url"]
+    try:
+        expo_token = os.getenv('EXPO_TOKEN')
+        headers = {"Accept": "application/json"}
+        if expo_token:
+            headers["Authorization"] = f"Bearer {expo_token}"
+        resp = requests.get(
+            f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=ios&limit=1",
+            headers=headers
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            builds = data.get("data", [])
+            if builds:
+                build = builds[0]
+                ios_url = build.get("artifacts", {}).get("applicationArchiveUrl")
+                if ios_url:
+                    EXPO_IOS_BUILD_CACHE["url"] = ios_url
+                    EXPO_IOS_BUILD_CACHE["timestamp"] = now
+                    return ios_url
+        else:
+            print(f"[ERROR] Expo API (iOS) returned status {resp.status_code}: {resp.text}")
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch Expo iOS build: {e}")
+    return None
+
 # --- Admin Dashboard ---
 @app.route('/admin', methods=['GET'])
 @requires_auth
@@ -1129,11 +1178,13 @@ def admin_dashboard():
     notif_log = load_json_file('notification_log.json', default=[])
     trigger_log = load_json_file('trigger_log.json', default=[])
     expo_apk_url = get_latest_expo_apk_url()
+    expo_ios_url = get_latest_expo_ios_url()
     return render_template('admin.html',
         email_subs=email_subs,
         notif_log=notif_log,
         trigger_log=trigger_log,
-        expo_apk_url=expo_apk_url)
+        expo_apk_url=expo_apk_url,
+        expo_ios_url=expo_ios_url)
 
 # --- Resend Welcome Email ---
 @app.route('/admin/resend-welcome', methods=['POST'])
@@ -1205,6 +1256,75 @@ def admin_get_logs():
     trigger_log = load_json_file('trigger_log.json', default=[])
     return jsonify({'notification_log': notif_log, 'trigger_log': trigger_log})
 
+# --- Expo Push Receipt Fetcher ---
+RECEIPT_FETCH_INTERVAL = 900  # 15 minutes
+RECEIPT_LOOKBACK_MINUTES = 30  # How far back to look for tickets
+
+def fetch_and_update_push_receipts():
+    with app.app_context():
+        # Find logs with ticket_id and status 'success' but not yet updated with receipt
+        cutoff = datetime.utcnow() - timedelta(minutes=RECEIPT_LOOKBACK_MINUTES)
+        logs = PushNotificationLog.query.filter(
+            and_(
+                PushNotificationLog.status == 'success',
+                PushNotificationLog.timestamp >= cutoff,
+                PushNotificationLog.data != None
+            )
+        ).all()
+        ticket_id_map = {}
+        for log in logs:
+            try:
+                data = json.loads(log.data)
+                ticket_id = data.get('ticket_id')
+                if ticket_id:
+                    ticket_id_map[ticket_id] = log
+            except Exception:
+                continue
+        if not ticket_id_map:
+            return
+        # Query Expo receipts in batches of 1000
+        ticket_ids = list(ticket_id_map.keys())
+        batch_size = 1000
+        for i in range(0, len(ticket_ids), batch_size):
+            batch = ticket_ids[i:i+batch_size]
+            try:
+                resp = requests.post(
+                    'https://exp.host/--/api/v2/push/getReceipts',
+                    headers={'Content-Type': 'application/json'},
+                    json={'ids': batch}
+                )
+                if resp.status_code == 200:
+                    data = resp.json().get('data', {})
+                    for tid, receipt in data.items():
+                        log = ticket_id_map.get(tid)
+                        if log:
+                            # Update log with receipt status and details
+                            log.data = json.dumps({**json.loads(log.data), 'receipt': receipt})
+                            if receipt.get('status') == 'ok':
+                                log.status = 'delivered'
+                                log.error = None
+                            else:
+                                log.status = 'delivery_error'
+                                log.error = json.dumps(receipt)
+                    db.session.commit()
+            except Exception as e:
+                print(f"[ERROR] Failed to fetch push receipts: {e}")
+
+def start_receipt_fetcher():
+    def run():
+        while True:
+            try:
+                fetch_and_update_push_receipts()
+            except Exception as e:
+                print(f"[ERROR] in receipt fetcher: {e}")
+            time.sleep(RECEIPT_FETCH_INTERVAL)
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    atexit.register(lambda: t.join(timeout=1))
+
+start_receipt_fetcher()
+
+# --- Update /api/send-push-notification to log ticket info ---
 @app.route('/api/send-push-notification', methods=['POST'])
 def api_send_push_notification():
     data = request.get_json()
@@ -1233,53 +1353,81 @@ def api_send_push_notification():
     
     expo_url = "https://exp.host/--/api/v2/push/send"
     messages = []
+    device_map = {}
     for device in devices:
         if device.platform == 'expo':
-            messages.append({
+            msg = {
                 "to": device.push_token,
                 "title": title,
                 "body": body,
                 "data": {"url": url},
                 "sound": "default",
-                "priority": "high",
-                "device_id": device.id,
-                "device_type": device.device_type
-            })
+                "priority": "high"
+            }
+            messages.append(msg)
+            device_map[device.push_token] = device
     batch_size = 100
     successful_sends = 0
     failed_sends = 0
     errors = []
     for i in range(0, len(messages), batch_size):
         batch = messages[i:i + batch_size]
+        tokens = [msg['to'] for msg in batch]
         try:
             response = requests.post(expo_url, json=batch, headers={'Content-Type': 'application/json'})
             if response.status_code == 200:
-                successful_sends += len(batch)
-                # Log each success
-                for msg in batch:
-                    log = PushNotificationLog(
-                        device_id=msg.get('device_id'),
-                        push_token=msg.get('to'),
-                        platform='expo',
-                        device_type=msg.get('device_type'),
-                        title=title,
-                        body=body,
-                        data=json.dumps({'url': url}),
-                        status='success',
-                        error=None
-                    )
+                resp_data = response.json()
+                tickets = resp_data.get('data', [])
+                for idx, ticket in enumerate(tickets):
+                    msg = batch[idx]
+                    device = device_map.get(msg['to'])
+                    ticket_id = ticket.get('id')
+                    log_data = {
+                        'url': url,
+                        'ticket_id': ticket_id,
+                        'ticket_status': ticket.get('status'),
+                        'ticket_message': ticket.get('message'),
+                        'ticket_details': ticket.get('details')
+                    }
+                    if ticket.get('status') == 'ok':
+                        successful_sends += 1
+                        log = PushNotificationLog(
+                            device_id=device.id if device else None,
+                            push_token=msg['to'],
+                            platform='expo',
+                            device_type=device.device_type if device else None,
+                            title=title,
+                            body=body,
+                            data=json.dumps(log_data),
+                            status='success',
+                            error=None
+                        )
+                    else:
+                        failed_sends += 1
+                        errors.append(ticket.get('message'))
+                        log = PushNotificationLog(
+                            device_id=device.id if device else None,
+                            push_token=msg['to'],
+                            platform='expo',
+                            device_type=device.device_type if device else None,
+                            title=title,
+                            body=body,
+                            data=json.dumps(log_data),
+                            status='ticket_error',
+                            error=json.dumps(ticket)
+                        )
                     db.session.add(log)
                 db.session.commit()
             else:
                 failed_sends += len(batch)
                 errors.append(response.text)
-                # Log each failure
                 for msg in batch:
+                    device = device_map.get(msg['to'])
                     log = PushNotificationLog(
-                        device_id=msg.get('device_id'),
-                        push_token=msg.get('to'),
+                        device_id=device.id if device else None,
+                        push_token=msg['to'],
                         platform='expo',
-                        device_type=msg.get('device_type'),
+                        device_type=device.device_type if device else None,
                         title=title,
                         body=body,
                         data=json.dumps({'url': url}),
@@ -1291,13 +1439,13 @@ def api_send_push_notification():
         except Exception as e:
             failed_sends += len(batch)
             errors.append(str(e))
-            # Log each failure
             for msg in batch:
+                device = device_map.get(msg['to'])
                 log = PushNotificationLog(
-                    device_id=msg.get('device_id'),
-                    push_token=msg.get('to'),
+                    device_id=device.id if device else None,
+                    push_token=msg['to'],
                     platform='expo',
-                    device_type=msg.get('device_type'),
+                    device_type=device.device_type if device else None,
                     title=title,
                     body=body,
                     data=json.dumps({'url': url}),
