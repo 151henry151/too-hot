@@ -1161,19 +1161,36 @@ def api_send_push_notification():
     devices = Device.query.filter_by(is_active=True).all()
     expo_tokens = [device.push_token for device in devices if device.platform == 'expo']
     if not expo_tokens:
+        # Log the attempt
+        log = PushNotificationLog(
+            device_id=None,
+            push_token=None,
+            platform='expo',
+            device_type=None,
+            title=title,
+            body=body,
+            data=json.dumps({'url': url}),
+            status='failure',
+            error='No Expo push tokens registered'
+        )
+        db.session.add(log)
+        db.session.commit()
         return jsonify({'success': False, 'message': 'No Expo push tokens registered', 'total_subscribers': 0}), 200
     
     expo_url = "https://exp.host/--/api/v2/push/send"
     messages = []
-    for token in expo_tokens:
-        messages.append({
-            "to": token,
-            "title": title,
-            "body": body,
-            "data": {"url": url},
-            "sound": "default",
-            "priority": "high"
-        })
+    for device in devices:
+        if device.platform == 'expo':
+            messages.append({
+                "to": device.push_token,
+                "title": title,
+                "body": body,
+                "data": {"url": url},
+                "sound": "default",
+                "priority": "high",
+                "device_id": device.id,
+                "device_type": device.device_type
+            })
     batch_size = 100
     successful_sends = 0
     failed_sends = 0
@@ -1184,12 +1201,57 @@ def api_send_push_notification():
             response = requests.post(expo_url, json=batch, headers={'Content-Type': 'application/json'})
             if response.status_code == 200:
                 successful_sends += len(batch)
+                # Log each success
+                for msg in batch:
+                    log = PushNotificationLog(
+                        device_id=msg.get('device_id'),
+                        push_token=msg.get('to'),
+                        platform='expo',
+                        device_type=msg.get('device_type'),
+                        title=title,
+                        body=body,
+                        data=json.dumps({'url': url}),
+                        status='success',
+                        error=None
+                    )
+                    db.session.add(log)
+                db.session.commit()
             else:
                 failed_sends += len(batch)
                 errors.append(response.text)
+                # Log each failure
+                for msg in batch:
+                    log = PushNotificationLog(
+                        device_id=msg.get('device_id'),
+                        push_token=msg.get('to'),
+                        platform='expo',
+                        device_type=msg.get('device_type'),
+                        title=title,
+                        body=body,
+                        data=json.dumps({'url': url}),
+                        status='failure',
+                        error=response.text
+                    )
+                    db.session.add(log)
+                db.session.commit()
         except Exception as e:
             failed_sends += len(batch)
             errors.append(str(e))
+            # Log each failure
+            for msg in batch:
+                log = PushNotificationLog(
+                    device_id=msg.get('device_id'),
+                    push_token=msg.get('to'),
+                    platform='expo',
+                    device_type=msg.get('device_type'),
+                    title=title,
+                    body=body,
+                    data=json.dumps({'url': url}),
+                    status='failure',
+                    error=str(e)
+                )
+                db.session.add(log)
+            db.session.commit()
     return jsonify({
         'success': failed_sends == 0,
         'message': 'Push notifications sent' if failed_sends == 0 else 'Some notifications failed',
