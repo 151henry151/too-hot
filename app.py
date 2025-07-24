@@ -12,6 +12,7 @@ import base64
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 import time
+import re
 
 load_dotenv()
 
@@ -1375,8 +1376,13 @@ def time_tracking():
     now = time.time()
     # Use cache if available and not expired
     if github_cache['data'] and now - github_cache['timestamp'] < GITHUB_CACHE_TTL:
+        print('[DEBUG] Using cached GitHub commit data')
         rows, total_hours, total_mins, error = github_cache['data']
         return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=error)
+    if not GITHUB_TOKEN:
+        print('[WARNING] GITHUB_TOKEN is not set! Using unauthenticated GitHub API requests.')
+    else:
+        print('[DEBUG] Using GITHUB_TOKEN for authenticated GitHub API requests.')
     try:
         # Fetch commit history from GitHub API (latest 100 commits)
         api_url = 'https://api.github.com/repos/151henry151/too-hot/commits?per_page=100'
@@ -1393,16 +1399,19 @@ def time_tracking():
             commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
-        # Filter out time tracking commits
+        # Filter out time tracking commits (various spellings)
         filtered_commits = []
         for c in commits:
-            if 'time tracking' not in c['msg'].lower():
+            if not re.search(r'time[\s-]?tracking', c['msg'], re.IGNORECASE):
                 filtered_commits.append(c)
         commits = filtered_commits
     except Exception as e:
-        github_cache['data'] = ([], 0, 0, f"Failed to fetch commit history: {e}")
+        err_msg = f"Failed to fetch commit history: {e}"
+        if not GITHUB_TOKEN:
+            err_msg += " (No GITHUB_TOKEN set; using unauthenticated API calls with low rate limit)"
+        github_cache['data'] = ([], 0, 0, err_msg)
         github_cache['timestamp'] = now
-        return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error=f"Failed to fetch commit history: {e}")
+        return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error=err_msg)
     # Calculate time spent per commit
     time_spent = []
     total_minutes = 0
