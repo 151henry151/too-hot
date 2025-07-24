@@ -1477,6 +1477,20 @@ def time_tracking():
     github_cache['timestamp'] = now
     return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None, any_missing_stats=any_missing_stats)
 
+@app.route('/admin/delete-subscriber', methods=['POST'])
+@requires_auth
+def admin_delete_subscriber():
+    data = request.get_json()
+    email = data.get('email')
+    if not email:
+        return jsonify({'success': False, 'error': 'Email required'}), 400
+    sub = Subscriber.query.filter_by(email=email).first()
+    if not sub:
+        return jsonify({'success': False, 'error': 'Subscriber not found'}), 404
+    db.session.delete(sub)
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'Subscriber {email} deleted'})
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")

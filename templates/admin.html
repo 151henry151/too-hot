@@ -137,6 +137,17 @@
                                 <td class="py-2 px-4">{{ sub.email }}</td>
                                 <td class="py-2 px-4">{{ sub.location }}</td>
                                 <td class="py-2 px-4">{{ sub.subscribed_at }}</td>
+                                <td class="py-2 px-4">
+                                  <button class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 mr-1" onclick="sendTestAlertEmail('{{ sub.email }}', '{{ sub.location }}')">
+                                    <i class="fas fa-envelope-open-text"></i> Test Alert
+                                  </button>
+                                  <button class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 mr-1" onclick="resendWelcomeEmail('{{ sub.email }}', '{{ sub.location }}')">
+                                    <i class="fas fa-paper-plane"></i> Resend Welcome
+                                  </button>
+                                  <button class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" onclick="deleteSubscriber('{{ sub.email }}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                  </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -438,6 +449,40 @@
                     document.getElementById('test-alert-result').textContent = data.success ? `Alert: ${data.location}, Current: ${data.current_temp}, Avg: ${data.avg_temp}, Diff: ${data.temp_diff}` : (data.error || 'Error');
                     loadLogs();
                 });
+        }
+
+        function sendTestAlertEmail(email, location) {
+          if (!confirm('Send a test climate alert email to ' + email + '?')) return;
+          fetch('/admin/send-test-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, location })
+          })
+            .then(r => r.json())
+            .then(data => alert(data.message || data.error || 'Done'));
+        }
+        function resendWelcomeEmail(email, location) {
+          if (!confirm('Resend welcome email to ' + email + '?')) return;
+          fetch('/admin/resend-welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, location })
+          })
+            .then(r => r.json())
+            .then(data => alert(data.message || data.error || 'Done'));
+        }
+        function deleteSubscriber(email) {
+          if (!confirm('Delete subscriber ' + email + '? This cannot be undone.')) return;
+          fetch('/admin/delete-subscriber', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          })
+            .then(r => r.json())
+            .then(data => {
+              alert(data.message || data.error || 'Done');
+              if (data.success) location.reload();
+            });
         }
     </script>
 </body>
