@@ -34,16 +34,22 @@
           <th>Commit</th>
           <th>Commit Message</th>
           <th>Commit Time</th>
-          <th>Time Spent (min)</th>
+          <th>Time Spent</th>
         </tr>
       </thead>
       <tbody>
         {% for row in rows %}
         <tr>
           <td><a class="commit-link" href="https://github.com/151henry151/too-hot/commit/{{ row.full_hash }}" target="_blank">{{ row.hash }}</a></td>
-          <td>{{ row.msg }}</td>
+          <td>{{ row.msg | replace('\n', '<br>') | safe }}</td>
           <td>{{ row.datetime }}</td>
-          <td>{{ row.time_spent }}</td>
+          <td>
+            {% if row.time_spent >= 60 %}
+              {{ (row.time_spent // 60)|int }}h{% if row.time_spent % 60 != 0 %}{{ (row.time_spent % 60)|int }}m{% endif %}
+            {% else %}
+              {{ row.time_spent }}m
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
