@@ -1368,7 +1368,7 @@ def time_tracking():
         commits = []
         for c in data:
             commit = c['sha']
-            msg = c['commit']['message'].split('\n')[0]
+            msg = c['commit']['message']
             date_str = c['commit']['committer']['date']
             dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
             commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
@@ -1381,10 +1381,21 @@ def time_tracking():
     total_minutes = 0
     for i in range(len(commits)):
         if i == 0:
-            spent = 0
+            spent = 190  # Special case for first commit: 3h10m
         else:
             delta = (commits[i-1]['datetime'] - commits[i]['datetime']).total_seconds() / 60
-            spent = min(max(int(delta), 0), 120)
+            if delta >= 120:
+                # Estimate by lines changed (insertions + deletions), capped at 180 min
+                stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{commits[i]["hash"]}'
+                stats_resp = requests.get(stats_url)
+                if stats_resp.status_code == 200:
+                    stats = stats_resp.json().get('stats', {})
+                    lines = stats.get('additions', 0) + stats.get('deletions', 0)
+                    spent = min(lines * 3, 180)
+                else:
+                    spent = 120  # fallback if API fails
+            else:
+                spent = min(max(int(delta), 0), 120)
         time_spent.append(spent)
         total_minutes += spent
     rows = []
