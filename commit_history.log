@@ -1,0 +1,58 @@
+e13c6b5fbe995821ca30818809a9066aa380643a|Henry Romp|2025-07-24 16:22:48 -0400|feat(app): Add cross-platform debug logging to backend from React Native app\n\n- Adds useLogger hook for logging info, warn, error, and debug to backend\n- Integrates logging into HomeScreen and ShopScreen for push, purchase, and error flows\n- Ensures logs from both Android and iOS clients are visible in admin dashboard
+f77c2147c85f88e2b832c78aa4ab3c4932da6e67|Henry Romp|2025-07-24 16:21:11 -0400|feat(admin): Overhaul dashboard with logs, subscriber management, and test actions\n\n- Adds system logs section with filtering for push/debug logs\n- Detailed push subscriber management (info, delete/unsubscribe)\n- Test actions for email, push, and temperature alerts (custom/live)\n- Log viewers for backend/mobile logs\n- Integrates with new backend endpoints
+4f59687ea2a243453a575a4773ae45db34e1d2c1|Henry Romp|2025-07-24 16:19:12 -0400|feat(admin,api): Add push/debug logging, subscriber management, and test alert endpoints\n\n- Adds PushNotificationLog and DebugLog models\n- Endpoints for logging push attempts, debug info, fetching logs, deleting push subscribers, and testing temperature alerts (custom/real data)\n- Foundation for advanced admin dashboard features
+03a381cb8efb7c651f9adad6dc8ef1aab54ac488|Henry Romp|2025-07-22 00:05:36 -0400|feat(api): Add /api/send-push-notification endpoint for device-based push notifications
+4dd87da6d895a2dd4b1499b3d9fde135ffa53e2b|Henry Romp|2025-07-21 23:57:12 -0400|fix(admin): Update 'View Main Site' link to its2hot.org in dashboard
+6bb7c50c38399a1073c6bbc9e6e4ea065e85bf34|Henry Romp|2025-07-21 23:48:11 -0400|feat(admin): Show email subscriber count and table in dashboard\n\n- Displays live count in stats card\n- Adds table listing all email subscribers with email, location, and subscribed date
+e8afd64e0af7c2ddbbe0fbdd53c48dc84f3866a1|Henry Romp|2025-07-21 23:46:46 -0400|chore(cleanup): Remove all legacy PWA push notification files and docs\n\n- Deleted service worker, push manager JS, manifest, VAPID scripts, and docs\n- Fully migrated to Expo/Firebase device-based push notification system
+dbc694f94193014a656b225477ec51427e047ac1|Henry Romp|2025-07-21 23:36:39 -0400|refactor(admin): Use single modern admin dashboard and remove legacy template
+84b86444d0e918fb85cc23291a725e0372b2a7b4|Henry Romp|2025-07-21 23:24:18 -0400|feat(admin): Show all push notification subscribers (mobile + web) in dashboard\n\n- Add /api/push-subscribers endpoint returning Device table entries\n- Update admin dashboard to display platform, device type, and registration time for each subscriber\n- Removes dependency on old push_subscriptions.json file
+374365a68b25971484fc5ff616720d4ed1401e99|Henry Romp|2025-07-21 23:16:14 -0400|feat(mobile): Add initial React Native app and Firebase config
+50203c7e2943e897596621a7c0d2542a767b02d3|Henry Romp|2025-07-21 23:14:44 -0400|feat(email): Add styled HTML welcome email with 'Get the alert, wear the shirt' slogan
+5eab6dd09b4d67a41d3318c919f29657fb117ae2|Henry Romp|2025-07-21 21:40:18 -0400|Add /api/log-error endpoint to email mobile app errors to admin
+fb348a5d30c0ed2f0bafd75077c10992d18dacf2|Henry Romp|2025-07-21 18:22:39 -0400|Update footer to '© 2025 Too Hot - Climate Awareness Campaign'
+84e05fb4275899145c4440660eb9315120f65f8d|Henry Romp|2025-07-21 18:21:42 -0400|Remove 'on climate anomaly days' from t-shirt movement section on main page
+e625d7baf601cdd91f7c9c4b337c0525977fde85|Henry Romp|2025-07-21 18:20:45 -0400|Move 'Climate Action Starts Here' hero section to top of main page above alert section
+d36a7c5559aa61992f4b7d1e57bbc44d21cd98b0|Henry Romp|2025-07-21 18:19:07 -0400|Update main page: new 'Get The Alert' hero, add 'Wear The Shirt' CTA with t-shirt icon and shop link
+ac14341637d8f21914675117f8fd2804d12f5eaf|Henry Romp|2025-07-21 18:14:25 -0400|Update shop page hero description: 'Wear the shirt when you get the alert.'
+a18ef522ef8547995469f985199484fe9fbd2b28|Henry Romp|2025-07-21 18:09:04 -0400|Fix Cloud SQL DB initialization: use app.app_context() for db.create_all()
+f9d7be78cfa764562b10b8e5d174da561b4b3eb2|Henry Romp|2025-07-21 18:04:33 -0400|Configure SQLAlchemy for Cloud SQL Postgres on GCP; fallback to SQLite for local dev; add psycopg2-binary
+429e81e3f91d99965178e5d7ab0d9cb5913b8d95|Henry Romp|2025-07-21 17:38:34 -0400|Migrate email subscribers to SQLite with SQLAlchemy; admin dashboard and all endpoints now use DB
+c54d2968bfa1f251a1ddeada9bc9cca9e497a0f9|Henry Romp|2025-07-21 17:35:00 -0400|Beautiful HTML climate alert email: branding, flashmob image, temp info, shop link, and admin test support
+dfc1e4e243712b188f8337d49019cf640bff4906|Henry Romp|2025-07-21 17:20:56 -0400|Add admin dashboard with authentication, subscriber management, email/notification test/resend, and logs
+a3513d036c629c84b68c4568781448c3be485f97|Henry Romp|2025-07-21 10:10:20 -0400|Update Flask-Mail config to use spacemail SMTP and new sender address
+3a9cfaa1992577d425cd5c90bb1153c03813c905|Henry Romp|2025-07-21 09:57:02 -0400|Remove deploy_gcp.sh to standardize on Cloud Build GitHub-triggered deployment
+142e8a1af676a52ff683dee734712a2d25a2199b|Henry Romp|2025-07-21 00:59:56 -0400|Add push notification system and admin dashboard
+2993f2a2746fd4c0a85f14a12548ff68a5abcfcd|Henry Romp|2025-07-21 00:58:50 -0400|Fix shop page color selection and image switching functionality
+c9bead4ca530f039889692e35b4d8b2bcb28c75b|Henry Romp|2025-07-21 00:45:19 -0400|fix: configure PayPal for local dev (sandbox) and production (live)
+bd1d800b0c3aa5c069783b4d92d3b7a3051a3166|Henry Romp|2025-07-21 00:44:45 -0400|fix: update PayPal configuration for production and local development
+550aaed05bdea1880cfb5c14d132f958f2916e50|Henry Romp|2025-07-21 00:41:55 -0400|fix: use tojson filter for proper JavaScript escaping to prevent syntax errors
+8b6101692856834f5e570428d612ecf1b98c6dbc|Henry Romp|2025-07-21 00:40:44 -0400|fix: remove unused heather-grey-alt color to prevent JavaScript syntax errors
+3567b7d6522114038aac4f177356085452abe12d|Henry Romp|2025-07-21 00:39:29 -0400|fix: clean up JavaScript and improve design switching logic
+b677005aaa36f86e7f7030dcbe62098a28605f56|Henry Romp|2025-07-21 00:38:44 -0400|fix: add default values to Jinja2 template syntax to prevent JavaScript syntax errors
+2c20e3c738c29d13c8ec961fba3e26b941b30e33|Henry Romp|2025-07-21 00:37:41 -0400|debug: add console logging to updateProductImage to troubleshoot image loading
+1598dd61263d49b92681daa1ebab4b5598d03a0e|Henry Romp|2025-07-21 00:37:07 -0400|debug: add console logging to troubleshoot color selection issues
+32860f9ac606d4aeb189f569fa770e81b389c44f|Henry Romp|2025-07-21 00:36:39 -0400|fix: correct color name mapping and design switching in shop page
+0f21cb1048e1fb1d1e7f5d618220dddda34755c9|Henry Romp|2025-07-21 00:34:53 -0400|fix: restore dynamic color selection and design switching in shop page
+d3f2d6526d766c687185fa3eae86d34bb19a763d|Henry Romp|2025-07-21 00:25:13 -0400|security: add patterns to prevent sensitive documentation files from being committed
+87114fe3b305a0eab7ea832bb9d52d4ce9f9db91|Henry Romp|2025-07-21 00:20:51 -0400|feat: move all sensitive credentials to Google Cloud Secret Manager
+250eb5d12bd83646f3d120ea3fc9803b51fa9761|Henry Romp|2025-07-21 00:19:29 -0400|feat: implement secure API key management with Google Cloud Secret Manager
+a4433a0af9de881bf872370c5bca52592dbce6dd|Henry Romp|2025-07-21 00:09:03 -0400|fix: improve Action Alerts section video background and text visibility
+6ff6ef76f621f169bcbb8c1da53730e5e962fd9b|Henry Romp|2025-07-20 22:27:32 -0400|Fix text contrast in WHY THIS MATTERS section - change from black background/white text to white background/dark text for better readability
+e2ce57e5feba9be2c7bb58ba8f72df8022d94b89|Henry Romp|2025-07-20 22:24:20 -0400|Fix missing flask-cors dependency that was causing Cloud Run deployment to fail
+fa9e3c4986827060bbb502120a490b978386e942|Henry Romp|2025-07-20 22:19:24 -0400|Add mockup photos with carousel and color selection - 3 colors for dark design (Black, French Navy, Anthracite) and 2 colors for light design (White, Heather Grey) with front/back views
+9fdca57f294afca9fc8730fb587884f20d3a1798|Henry Romp|2025-07-20 22:11:35 -0400|Fix t-shirt image switching - use different images for dark and light designs
+59c3ed2cb814fbc6cde53a540efd80d77d939df5|Henry Romp|2025-07-20 22:10:43 -0400|Fix HTML entity encoding in product titles - use |safe filter and innerHTML for proper apostrophe display
+bfb50718d1831539ee2d745d40dd313cc3b75ac7|Henry Romp|2025-07-20 22:09:58 -0400|Add Printful product image integration to shop page with dynamic image loading and design selection
+ec42647909254cda5da3249fbfcaaaa1c2ba3726|Henry Romp|2025-07-20 22:04:50 -0400|Complete e-commerce integration: PayPal payments, Printful fulfillment, dual t-shirt designs, and production-ready deployment
+1d2a288b0445401adfa40d5be5031ace27b5a631|Henry Romp|2025-07-20 02:08:22 -0400|Add debug logging to check environment variables
+5f0a52cc8560d97c4558e748c094da17d17086b2|Henry Romp|2025-07-20 01:55:49 -0400|Fix Cloud Build configuration with correct Gmail and Weather API credentials
+6120601b277f385a83ef952ceb785f8a93dc1c73|Henry Romp|2025-07-20 01:36:45 -0400|Add welcome emails for new subscribers and lower temperature threshold to 1°F for testing
+4444b7b6f7f4fd5e2bb06ef8a4c52ef81d4fd950|Henry Romp|2025-07-19 23:25:44 -0400|Replace primary image with toohot1.png - fixing text on tshirts and signs
+87c14d8186d96fa715328ed6fd35d63948c3c0d5|Henry Romp|2025-07-19 23:09:12 -0400|Add CLOUD_LOGGING_ONLY option to fix Cloud Build trigger
+f9d4e9ba15ec555ab5ef8bfbfb2b1cec95acba45|Henry Romp|2025-07-19 23:07:38 -0400|Test automatic Cloud Build trigger
+0df26f5ccebeda25a2c4f9caed8ba0222f622a2c|Henry Romp|2025-07-19 22:34:34 -0400|Reorganize README with concise top section and technical details at bottom
+37e01db6bef8032939de30c4fd0bb6fa56f0cdb7|Henry Romp|2025-07-19 22:16:02 -0400|Fix mobile responsiveness for t-shirt image - prevent overflow on small screens
+792beb723b6e1b71cdd0bc5f948d65f20b964886|Henry Romp|2025-07-19 22:08:58 -0400|Add custom domain configuration for its2hot.org
+b25c1c251035b5d44e1f4bd808a3749ad62f1e0a|Henry Romp|2025-07-19 21:43:20 -0400|Add Docker support and GCP deployment configuration
+361aa67eba67bc3651f9da5203267fdb409bb505|Henry Romp|2025-07-19 21:40:28 -0400|Initial commit: Climate awareness campaign with web UI and API backend

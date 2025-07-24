@@ -63,3 +63,20 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp 
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example 
