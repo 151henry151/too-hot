@@ -251,10 +251,10 @@
                 Get an alert when temperatures are 10°F hotter than average
             </p>
             <div class="mt-4">
-                <button id="subscribe-push" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm">
+                <a id="get-app-link" href="#" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm" target="_blank">
                     <i class="fas fa-bell mr-2"></i>
-                    Enable Notifications
-                </button>
+                    Get the app to enable notifications!
+                </a>
                 <button id="unsubscribe-push" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm" style="display: none;">
                     <i class="fas fa-bell-slash mr-2"></i>
                     Disable Push Notifications
@@ -538,6 +538,22 @@
                 sectionText.style.opacity = 1;
             }, 100); // slight delay for effect
         });
+
+        // Replace the old subscribe-push button with a platform-specific app link
+        (function() {
+            var getAppLink = document.getElementById('get-app-link');
+            if (!getAppLink) return;
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            var ios = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+            var android = /android/i.test(userAgent);
+            if (ios) {
+                getAppLink.href = 'https://apps.apple.com/app/idXXXXXXXXX'; // Placeholder App Store link
+            } else if (android) {
+                getAppLink.href = 'https://play.google.com/store/apps/details?id=com.example.app'; // Placeholder Play Store link
+            } else {
+                getAppLink.href = 'https://its2hot.org'; // fallback
+            }
+        })();
     </script>
 </body>
 </html> 
