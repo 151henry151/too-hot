@@ -1890,15 +1890,37 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
-        # Calculate next check time based on actual Cloud Scheduler configuration
-        next_check_info = "Unknown"
-        if CHECK_FREQUENCY == 'hourly':
-            # The hourly job runs from 6 AM to 8 PM Eastern Time
-            next_check_info = "Every hour (6 AM - 8 PM Eastern Time)"
-        elif CHECK_FREQUENCY == 'daily':
-            next_check_info = "Daily at 8 AM Eastern Time"
-        else:
-            next_check_info = f"Every {CHECK_FREQUENCY}"
+        # Get actual Cloud Scheduler job status
+        try:
+            hourly_status = subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'describe', 'hourly-temperature-check',
+                '--location=us-central1', '--format=value(state)'
+            ], capture_output=True, text=True, check=True).stdout.strip()
+            
+            daily_status = subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'describe', 'daily-temperature-check',
+                '--location=us-central1', '--format=value(state)'
+            ], capture_output=True, text=True, check=True).stdout.strip()
+            
+            # Determine which job is active and show appropriate schedule
+            if hourly_status == 'ENABLED':
+                next_check_info = "Every hour (24/7)"
+                active_job = "hourly"
+            elif daily_status == 'ENABLED':
+                next_check_info = "Daily at 8 AM Eastern Time"
+                active_job = "daily"
+            else:
+                next_check_info = "No active scheduler jobs"
+                active_job = "none"
+        except subprocess.CalledProcessError:
+            # Fallback to frequency-based display if we can't get job status
+            if CHECK_FREQUENCY == 'hourly':
+                next_check_info = "Every hour (24/7)"
+            elif CHECK_FREQUENCY == 'daily':
+                next_check_info = "Daily at 8 AM Eastern Time"
+            else:
+                next_check_info = f"Every {CHECK_FREQUENCY}"
+            active_job = CHECK_FREQUENCY
         
         return jsonify({
             'status': 'healthy',
@@ -1909,7 +1931,8 @@ def scheduler_health():
             'last_check': last_check.isoformat() if last_check else None,
             'next_check_info': next_check_info,
             'threshold': TEMP_THRESHOLD,
-            'frequency': CHECK_FREQUENCY
+            'frequency': CHECK_FREQUENCY,
+            'active_job': active_job
         })
     except Exception as e:
         return jsonify({
@@ -1920,6 +1943,7 @@ def scheduler_health():
 
 import os
 import time
+import subprocess
 
 github_cache = {'data': None, 'timestamp': 0}
 GITHUB_CACHE_TTL = 3600  # 1 hour
@@ -2066,6 +2090,36 @@ def get_settings():
         'frequency': CHECK_FREQUENCY
     })
 
+def update_cloud_scheduler_jobs(frequency):
+    """Update Cloud Scheduler jobs based on frequency setting"""
+    try:
+        if frequency == 'hourly':
+            # Enable hourly job, disable daily job
+            subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'update', 'http', 'hourly-temperature-check',
+                '--schedule=0 * * * *', '--location=us-central1'
+            ], check=True, capture_output=True)
+            subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'pause', 'daily-temperature-check',
+                '--location=us-central1'
+            ], check=True, capture_output=True)
+            print("✅ Cloud Scheduler: Enabled hourly job, paused daily job")
+        elif frequency == 'daily':
+            # Enable daily job, disable hourly job
+            subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'update', 'http', 'daily-temperature-check',
+                '--schedule=0 8 * * *', '--location=us-central1'
+            ], check=True, capture_output=True)
+            subprocess.run([
+                'gcloud', 'scheduler', 'jobs', 'pause', 'hourly-temperature-check',
+                '--location=us-central1'
+            ], check=True, capture_output=True)
+            print("✅ Cloud Scheduler: Enabled daily job, paused hourly job")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error updating Cloud Scheduler jobs: {e}")
+        return False
+    return True
+
 @app.route('/api/settings', methods=['POST'])
 def update_settings():
     """Update temperature alert settings"""
@@ -2087,13 +2141,17 @@ def update_settings():
     TEMP_THRESHOLD = new_threshold
     CHECK_FREQUENCY = new_frequency
     
+    # Update Cloud Scheduler jobs
+    scheduler_updated = update_cloud_scheduler_jobs(new_frequency)
+    
     print(f"✅ Settings updated: Threshold={TEMP_THRESHOLD}°F, Frequency={CHECK_FREQUENCY}")
     
     return jsonify({
         'success': True,
         'message': f'Settings updated: {TEMP_THRESHOLD}°F threshold, {CHECK_FREQUENCY} checks',
         'threshold': TEMP_THRESHOLD,
-        'frequency': CHECK_FREQUENCY
+        'frequency': CHECK_FREQUENCY,
+        'scheduler_updated': scheduler_updated
     })
 
 @app.route('/api/migrate-db', methods=['POST'])
