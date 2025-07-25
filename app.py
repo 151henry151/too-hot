@@ -166,6 +166,32 @@ class DebugLog(db.Model):
             'timestamp': self.timestamp.isoformat()
         }
 
+class SchedulerLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    trigger_type = db.Column(db.String(32), nullable=False)  # 'manual', 'cloud_scheduler', 'test'
+    locations_checked = db.Column(db.Text, nullable=True)  # JSON array of locations
+    temperatures_found = db.Column(db.Text, nullable=True)  # JSON object with location:temp pairs
+    alerts_triggered = db.Column(db.Integer, default=0)  # Number of alerts sent
+    threshold_used = db.Column(db.Float, nullable=False)  # Temperature threshold used
+    status = db.Column(db.String(32), nullable=False)  # 'success', 'error', 'partial'
+    error_message = db.Column(db.Text, nullable=True)
+    duration_ms = db.Column(db.Integer, nullable=True)  # How long the check took
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'trigger_type': self.trigger_type,
+            'locations_checked': self.locations_checked,
+            'temperatures_found': self.temperatures_found,
+            'alerts_triggered': self.alerts_triggered,
+            'threshold_used': self.threshold_used,
+            'status': self.status,
+            'error_message': self.error_message,
+            'duration_ms': self.duration_ms,
+            'timestamp': self.timestamp.isoformat()
+        }
+
 # --- Initialize DB ---
 # Remove the @app.before_first_request decorator and function
 # Instead, use app.app_context() at startup
@@ -1286,6 +1312,27 @@ def admin_send_test_notification():
 def log_trigger_event(event):
     log_event('trigger_log.json', event)
 
+# --- Log Scheduler Activity ---
+def log_scheduler_activity(trigger_type, locations_checked, temperatures_found, alerts_triggered, 
+                          threshold_used, status, error_message=None, duration_ms=None):
+    """Log scheduler activity to database"""
+    try:
+        log = SchedulerLog(
+            trigger_type=trigger_type,
+            locations_checked=json.dumps(locations_checked) if locations_checked else None,
+            temperatures_found=json.dumps(temperatures_found) if temperatures_found else None,
+            alerts_triggered=alerts_triggered,
+            threshold_used=threshold_used,
+            status=status,
+            error_message=error_message,
+            duration_ms=duration_ms
+        )
+        db.session.add(log)
+        db.session.commit()
+        print(f"📊 Scheduler log: {trigger_type} - {status} - {alerts_triggered} alerts")
+    except Exception as e:
+        print(f"❌ Failed to log scheduler activity: {e}")
+
 # --- API to get logs (for dashboard AJAX) ---
 @app.route('/admin/logs', methods=['GET'])
 @requires_auth
@@ -1554,12 +1601,17 @@ def get_logs():
     elif log_type == 'debug':
         logs = DebugLog.query.order_by(DebugLog.timestamp.desc()).limit(limit).all()
         return jsonify({'logs': [l.as_dict() for l in logs]})
+    elif log_type == 'scheduler':
+        logs = SchedulerLog.query.order_by(SchedulerLog.timestamp.desc()).limit(limit).all()
+        return jsonify({'logs': [l.as_dict() for l in logs]})
     else:
         push_logs = PushNotificationLog.query.order_by(PushNotificationLog.timestamp.desc()).limit(limit).all()
         debug_logs = DebugLog.query.order_by(DebugLog.timestamp.desc()).limit(limit).all()
+        scheduler_logs = SchedulerLog.query.order_by(SchedulerLog.timestamp.desc()).limit(limit).all()
         return jsonify({
             'push_logs': [l.as_dict() for l in push_logs],
-            'debug_logs': [l.as_dict() for l in debug_logs]
+            'debug_logs': [l.as_dict() for l in debug_logs],
+            'scheduler_logs': [l.as_dict() for l in scheduler_logs]
         })
 
 # --- API: Delete/Unsubscribe Push Subscriber ---
@@ -1624,14 +1676,37 @@ def test_temperature_alert():
 @app.route('/api/scheduler/check-temperatures', methods=['GET'])
 def scheduler_check_temperatures():
     """Scheduler endpoint for Cloud Scheduler to trigger temperature checks"""
+    start_time = datetime.now()
+    trigger_type = request.args.get('trigger_type', 'cloud_scheduler')
+    
     try:
-        print(f"🌡️ Scheduler triggered temperature check at {datetime.now()}")
+        print(f"🌡️ Scheduler triggered temperature check at {start_time}")
         
         # Call the existing temperature check function
         result = check_temperatures()
         
-        # Log the result
+        # Calculate duration
+        duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        # Extract data for logging
         notifications_sent = result.get('notifications_sent', 0)
+        details = result.get('details', [])
+        
+        # Extract locations and temperatures from details
+        locations_checked = list(set([detail.get('location', 'Unknown') for detail in details]))
+        temperatures_found = {detail.get('location', 'Unknown'): detail.get('current_temp', 0) for detail in details}
+        
+        # Log the activity
+        log_scheduler_activity(
+            trigger_type=trigger_type,
+            locations_checked=locations_checked,
+            temperatures_found=temperatures_found,
+            alerts_triggered=notifications_sent,
+            threshold_used=TEMP_THRESHOLD,
+            status='success',
+            duration_ms=duration_ms
+        )
+        
         if notifications_sent > 0:
             print(f"✅ Scheduler sent {notifications_sent} temperature alerts")
         else:
@@ -1639,29 +1714,75 @@ def scheduler_check_temperatures():
         
         return jsonify({
             'success': True,
-            'timestamp': datetime.now().isoformat(),
-            'result': result
+            'timestamp': start_time.isoformat(),
+            'result': result,
+            'duration_ms': duration_ms
         })
         
     except Exception as e:
         error_msg = f"Scheduler temperature check failed: {str(e)}"
         print(f"❌ {error_msg}")
+        
+        # Log the error
+        duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        log_scheduler_activity(
+            trigger_type=trigger_type,
+            locations_checked=[],
+            temperatures_found={},
+            alerts_triggered=0,
+            threshold_used=TEMP_THRESHOLD,
+            status='error',
+            error_message=error_msg,
+            duration_ms=duration_ms
+        )
+        
         return jsonify({
             'success': False,
             'error': error_msg,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': start_time.isoformat()
         }), 500
 
 # --- Scheduler Health Check ---
 @app.route('/api/scheduler/health', methods=['GET'])
 def scheduler_health():
     """Health check endpoint for the scheduler"""
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'subscribers': Subscriber.query.count(),
-        'devices': Device.query.filter_by(is_active=True).count()
-    })
+    try:
+        # Check if we can access the database
+        subscriber_count = Subscriber.query.count()
+        device_count = Device.query.filter_by(is_active=True).count()
+        
+        # Check if weather API is accessible
+        weather_status = 'unknown'
+        if WEATHER_API_KEY:
+            try:
+                # Quick test of weather API
+                test_response = requests.get(f"{WEATHER_BASE_URL}/current.json", 
+                                          params={'key': WEATHER_API_KEY, 'q': 'New York'}, 
+                                          timeout=5)
+                weather_status = 'healthy' if test_response.status_code == 200 else 'error'
+            except:
+                weather_status = 'error'
+        
+        # Get recent scheduler activity
+        recent_logs = SchedulerLog.query.order_by(SchedulerLog.timestamp.desc()).limit(5).all()
+        last_check = recent_logs[0].timestamp if recent_logs else None
+        
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'subscribers': subscriber_count,
+            'devices': device_count,
+            'weather_api': weather_status,
+            'last_check': last_check.isoformat() if last_check else None,
+            'threshold': TEMP_THRESHOLD,
+            'frequency': CHECK_FREQUENCY
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 import os
 import time
