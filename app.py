@@ -1331,6 +1331,9 @@ def api_send_push_notification():
     title = data.get('title', 'IT\'S TOO HOT!')
     body = data.get('body', 'Temperature alert!')
     url = data.get('url', '/')
+    location = data.get('location')
+    current_temp = data.get('current_temp')
+    avg_temp = data.get('avg_temp')
     
     devices = Device.query.filter_by(is_active=True).all()
     expo_tokens = [device.push_token for device in devices if device.platform == 'expo']
@@ -1343,7 +1346,7 @@ def api_send_push_notification():
             device_type=None,
             title=title,
             body=body,
-            data=json.dumps({'url': url}),
+            data=json.dumps({'url': url, 'location': location, 'current_temp': current_temp, 'avg_temp': avg_temp}),
             status='failure',
             error='No Expo push tokens registered'
         )
@@ -1360,7 +1363,12 @@ def api_send_push_notification():
                 "to": device.push_token,
                 "title": title,
                 "body": body,
-                "data": {"url": url},
+                "data": {
+                    "url": url,
+                    "location": location,
+                    "current_temp": current_temp,
+                    "avg_temp": avg_temp
+                },
                 "sound": "default",
                 "priority": "high"
             }
