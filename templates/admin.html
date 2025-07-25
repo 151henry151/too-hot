@@ -231,6 +231,8 @@
                             <option value="all">All</option>
                             <option value="push">Push Notifications</option>
                             <option value="debug">Debug/Error</option>
+                            <option value="mobile">Mobile Logs</option>
+                            <option value="scheduler">Scheduler Logs</option>
                         </select>
                         <button onclick="loadLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
                             <i class="fas fa-sync-alt"></i> Refresh
@@ -240,39 +242,7 @@
                 <div id="logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
             </div>
 
-            <!-- Mobile Logs Section -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-mobile-alt mr-2 text-blue-600"></i>
-                        Mobile Logs
-                    </h2>
-                    <div class="flex space-x-2">
-                        <button onclick="loadMobileLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                <div id="mobile-logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
-            </div>
 
-            <!-- Scheduler Logs Section -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-list-alt mr-2 text-purple-600"></i>
-                        Scheduler Logs
-                    </h2>
-                    <div class="flex space-x-2">
-                        <button onclick="loadSchedulerLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                <div id="scheduler-logs-list" class="max-h-96 overflow-y-auto border rounded p-2 bg-gray-50">
-                    <div class="text-gray-500">Loading scheduler logs...</div>
-                </div>
-            </div>
 
             <!-- Push Subscribers Table with Management -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
@@ -556,6 +526,67 @@
                         logsHtml = data.logs.map(l => `<div>[${l.timestamp}] <b>${l.status}</b> - ${l.title || ''} (${l.device_type || ''}) ${l.error ? '<span class="text-red-600">' + l.error + '</span>' : ''}</div>`).join('');
                     } else if (type === 'debug' && data.logs) {
                         logsHtml = data.logs.map(l => `<div>[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})</div>`).join('');
+                    } else if (type === 'mobile' && data.logs) {
+                        logsHtml = data.logs.map(log => `
+                            <div class="border-b py-2 px-1 flex flex-col">
+                                <div class="flex items-center mb-1">
+                                    <span class="font-semibold text-blue-700 mr-2">${log.platform || log.source || ''}</span>
+                                    <span class="text-xs text-gray-500 mr-2">${log.deviceModel || ''}</span>
+                                    <span class="text-xs text-gray-400">${log.timestamp ? log.timestamp.replace('T', ' ').slice(0, 19) : ''}</span>
+                                </div>
+                                <div class="text-xs text-gray-600 mb-1">${log.context || ''}</div>
+                                <div class="text-gray-900">${log.message}</div>
+                            </div>
+                        `).join('');
+                    } else if (type === 'scheduler' && data.logs) {
+                        logsHtml = data.logs.map(log => {
+                            const timestamp = new Date(log.timestamp).toLocaleString();
+                            const statusColor = log.status === 'success' ? 'text-green-600' : 
+                                              log.status === 'error' ? 'text-red-600' : 'text-yellow-600';
+                            const statusIcon = log.status === 'success' ? '✅' : 
+                                             log.status === 'error' ? '❌' : '⚠️';
+                            
+                            let locationsText = 'No locations';
+                            let temperaturesText = '';
+                            
+                            if (log.locations_checked) {
+                                try {
+                                    const locations = JSON.parse(log.locations_checked);
+                                    locationsText = locations.join(', ');
+                                } catch (e) {
+                                    locationsText = 'Error parsing locations';
+                                }
+                            }
+                            
+                            if (log.temperatures_found) {
+                                try {
+                                    const temps = JSON.parse(log.temperatures_found);
+                                    temperaturesText = Object.entries(temps).map(([loc, temp]) => 
+                                        `${loc}: ${temp}°F`).join(', ');
+                                } catch (e) {
+                                    temperaturesText = 'Error parsing temperatures';
+                                }
+                            }
+                            
+                            return `
+                                <div class="border-b py-2 px-1 flex flex-col">
+                                    <div class="flex items-center mb-1">
+                                        <span class="font-semibold ${statusColor} mr-2">${statusIcon} ${log.trigger_type}</span>
+                                        <span class="text-xs text-gray-500 mr-2">${log.threshold_used}°F threshold</span>
+                                        <span class="text-xs text-gray-400">${timestamp}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 mb-1">
+                                        <strong>Locations:</strong> ${locationsText}
+                                    </div>
+                                    ${temperaturesText ? `<div class="text-xs text-gray-600 mb-1"><strong>Temperatures:</strong> ${temperaturesText}</div>` : ''}
+                                    <div class="text-xs text-gray-600 mb-1">
+                                        <strong>Alerts:</strong> ${log.alerts_triggered} sent
+                                    </div>
+                                    ${log.duration_ms ? `<div class="text-xs text-gray-500">Duration: ${log.duration_ms}ms</div>` : ''}
+                                    ${log.error_message ? `<div class="text-xs text-red-600">Error: ${log.error_message}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('');
                     } else if (data.push_logs || data.debug_logs) {
                         logsHtml = '<b>Push Logs:</b><br>' + data.push_logs.map(l => `[${l.timestamp}] <b>${l.status}</b> - ${l.title || ''} (${l.device_type || ''}) ${l.error ? '<span class="text-red-600">' + l.error + '</span>' : ''}`).join('<br>') + '<br><b>Debug Logs:</b><br>' + data.debug_logs.map(l => `[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})`).join('<br>');
                     } else {
@@ -713,7 +744,7 @@
                 
                 // Refresh scheduler logs and health status
                 setTimeout(() => {
-                    loadSchedulerLogs();
+                    loadLogs(); // Refresh logs (will show scheduler logs if that type is selected)
                     loadSchedulerHealth();
                 }, 1000);
             })
@@ -761,31 +792,7 @@
             });
         }
 
-        function loadMobileLogs() {
-          fetch('/admin/mobile-logs')
-            .then(r => r.json())
-            .then(data => {
-              const logs = data.logs || [];
-              const listDiv = document.getElementById('mobile-logs-list');
-              if (logs.length === 0) {
-                listDiv.innerHTML = '<div class="text-gray-500">No mobile logs found.</div>';
-                return;
-              }
-              listDiv.innerHTML = logs.map(log => `
-                <div class="border-b py-2 px-1 flex flex-col">
-                  <div class="flex items-center mb-1">
-                    <span class="font-semibold text-blue-700 mr-2">${log.platform || log.source || ''}</span>
-                    <span class="text-xs text-gray-500 mr-2">${log.deviceModel || ''}</span>
-                    <span class="text-xs text-gray-400">${log.timestamp ? log.timestamp.replace('T', ' ').slice(0, 19) : ''}</span>
-                  </div>
-                  <div class="text-xs text-gray-600 mb-1">${log.context || ''}</div>
-                  <div class="text-gray-900">${log.message}</div>
-                </div>
-              `).join('');
-            });
-        }
-        // Load on page load
-        loadMobileLogs();
+
 
         // --- Temperature Alert Settings ---
         function loadSettings() {
@@ -913,78 +920,13 @@
                 });
         }
 
-        function loadSchedulerLogs() {
-            fetch('/api/logs?type=scheduler&limit=50')
-                .then(r => r.json())
-                .then(data => {
-                    const logs = data.logs || [];
-                    const listDiv = document.getElementById('scheduler-logs-list');
-                    
-                    if (logs.length === 0) {
-                        listDiv.innerHTML = '<div class="text-gray-500">No scheduler logs found.</div>';
-                        return;
-                    }
-                    
-                    listDiv.innerHTML = logs.map(log => {
-                        const timestamp = new Date(log.timestamp).toLocaleString();
-                        const statusColor = log.status === 'success' ? 'text-green-600' : 
-                                          log.status === 'error' ? 'text-red-600' : 'text-yellow-600';
-                        const statusIcon = log.status === 'success' ? '✅' : 
-                                         log.status === 'error' ? '❌' : '⚠️';
-                        
-                        let locationsText = 'No locations';
-                        let temperaturesText = '';
-                        
-                        if (log.locations_checked) {
-                            try {
-                                const locations = JSON.parse(log.locations_checked);
-                                locationsText = locations.join(', ');
-                            } catch (e) {
-                                locationsText = 'Error parsing locations';
-                            }
-                        }
-                        
-                        if (log.temperatures_found) {
-                            try {
-                                const temps = JSON.parse(log.temperatures_found);
-                                temperaturesText = Object.entries(temps).map(([loc, temp]) => 
-                                    `${loc}: ${temp}°F`).join(', ');
-                            } catch (e) {
-                                temperaturesText = 'Error parsing temperatures';
-                            }
-                        }
-                        
-                        return `
-                            <div class="border-b py-2 px-1 flex flex-col">
-                                <div class="flex items-center mb-1">
-                                    <span class="font-semibold ${statusColor} mr-2">${statusIcon} ${log.trigger_type}</span>
-                                    <span class="text-xs text-gray-500 mr-2">${log.threshold_used}°F threshold</span>
-                                    <span class="text-xs text-gray-400">${timestamp}</span>
-                                </div>
-                                <div class="text-xs text-gray-600 mb-1">
-                                    <strong>Locations:</strong> ${locationsText}
-                                </div>
-                                ${temperaturesText ? `<div class="text-xs text-gray-600 mb-1"><strong>Temperatures:</strong> ${temperaturesText}</div>` : ''}
-                                <div class="text-xs text-gray-600 mb-1">
-                                    <strong>Alerts:</strong> ${log.alerts_triggered} sent
-                                </div>
-                                ${log.duration_ms ? `<div class="text-xs text-gray-500">Duration: ${log.duration_ms}ms</div>` : ''}
-                                ${log.error_message ? `<div class="text-xs text-red-600">Error: ${log.error_message}</div>` : ''}
-                            </div>
-                        `;
-                    }).join('');
-                })
-                .catch(err => {
-                    document.getElementById('scheduler-logs-list').innerHTML = 
-                        '<div class="text-red-500">Error loading scheduler logs</div>';
-                });
-        }
+
 
         // Add event listeners
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
             loadSchedulerHealth();
-            loadSchedulerLogs();
+            loadLogs(); // Load initial logs
             
             document.getElementById('save-settings').addEventListener('click', saveSettings);
             
