@@ -45,6 +45,8 @@ steps:
       - 'MAIL_PASSWORD=mail-password:latest'
       - '--set-secrets'
       - 'WEATHER_API_KEY=weather-api-key:latest'
+      - '--set-secrets'
+      - 'EXPO_TOKEN=EXPO_TOKEN:latest'
       - '--set-env-vars'
       - 'SECRET_KEY=${_SECRET_KEY}'
 
