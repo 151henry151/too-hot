@@ -220,29 +220,40 @@
 
             <!-- System Logs Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
-                    System Logs
-                </h2>
-                <div class="mb-4">
-                    <label class="mr-2 font-semibold">Log Type:</label>
-                    <select id="log-type" class="border rounded px-2 py-1">
-                        <option value="all">All</option>
-                        <option value="push">Push Notifications</option>
-                        <option value="debug">Debug/Error</option>
-                    </select>
-                    <button onclick="loadLogs()" class="ml-4 bg-blue-600 text-white px-4 py-1 rounded">Refresh Logs</button>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
+                        System Logs
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <label class="mr-2 font-semibold text-sm">Log Type:</label>
+                        <select id="log-type" class="border rounded px-2 py-1 text-sm">
+                            <option value="all">All</option>
+                            <option value="push">Push Notifications</option>
+                            <option value="debug">Debug/Error</option>
+                        </select>
+                        <button onclick="loadLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
                 </div>
                 <div id="logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
             </div>
 
-            <!-- Mobile Logs Section (moved and restyled) -->
+            <!-- Mobile Logs Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                <i class="fas fa-mobile-alt mr-2 text-blue-600"></i> Mobile Logs
-                <button onclick="loadMobileLogs()" class="ml-4 bg-blue-600 text-white px-4 py-1 rounded"><i class="fas fa-sync-alt"></i> Refresh</button>
-              </h2>
-              <div id="mobile-logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-mobile-alt mr-2 text-blue-600"></i>
+                        Mobile Logs
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button onclick="loadMobileLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="mobile-logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
             </div>
 
             <!-- Scheduler Logs Section -->

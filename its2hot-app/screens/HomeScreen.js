@@ -61,11 +61,21 @@ export default function HomeScreen({ navigation }) {
       }
       const token = (await Notifications.getExpoPushTokenAsync()).data;
       logger.info('Push token: ' + token, 'Push Token');
+      
+      // Get user's location (you can implement geolocation here)
+      // For now, we'll use a default location or get it from user input
+      const userLocation = 'auto'; // This should be replaced with actual location detection
+      
       // Use production API endpoint for device registration
       const response = await fetch('https://its2hot.org/api/register-device', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ push_token: token, platform: 'expo', device_type: Platform.OS })
+        body: JSON.stringify({ 
+          push_token: token, 
+          platform: 'expo', 
+          device_type: Platform.OS,
+          location: userLocation
+        })
       });
       if (response.ok) {
         setIsSubscribed(true);

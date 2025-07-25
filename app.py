@@ -104,6 +104,7 @@ class Device(db.Model):
     push_token = db.Column(db.String(512), unique=True, nullable=False)
     platform = db.Column(db.String(32), nullable=False)  # 'expo', 'fcm', etc.
     device_type = db.Column(db.String(32), nullable=False)  # 'ios', 'android'
+    location = db.Column(db.String(128), default='auto')  # Location for this device
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
 
@@ -113,6 +114,7 @@ class Device(db.Model):
             'push_token': self.push_token,
             'platform': self.platform,
             'device_type': self.device_type,
+            'location': self.location,
             'registered_at': self.registered_at.isoformat(),
             'is_active': self.is_active
         }
@@ -824,6 +826,7 @@ def register_device():
     push_token = data.get('push_token')
     platform = data.get('platform', 'expo')
     device_type = data.get('device_type', 'unknown')
+    location = data.get('location', 'auto')  # Get location from request
     
     if not push_token:
         return jsonify({'error': 'Push token is required'}), 400
@@ -836,6 +839,7 @@ def register_device():
             # Update existing device
             existing_device.platform = platform
             existing_device.device_type = device_type
+            existing_device.location = location  # Update location
             existing_device.is_active = True
             existing_device.registered_at = datetime.utcnow()
         else:
@@ -843,13 +847,14 @@ def register_device():
             new_device = Device(
                 push_token=push_token,
                 platform=platform,
-                device_type=device_type
+                device_type=device_type,
+                location=location  # Set location
             )
             db.session.add(new_device)
         
         db.session.commit()
         
-        print(f"✅ Device registered: {platform} {device_type} - {push_token[:20]}...")
+        print(f"✅ Device registered: {platform} {device_type} at {location} - {push_token[:20]}...")
         
         return jsonify({
             'message': 'Device registered successfully',
@@ -1013,15 +1018,15 @@ def send_notification(email, location, current_temp, avg_temp, years=30):
         print(f"Failed to send notification to {email}: {e}")
 
 def send_push_notification(location, current_temp, avg_temp, years=30):
-    """Send push notification to all registered devices"""
+    """Send push notification to devices in the specific location"""
     try:
         temp_diff = round(current_temp - avg_temp, 1)
         
-        # Get all active devices
-        devices = Device.query.filter_by(is_active=True).all()
+        # Get active devices for this specific location
+        devices = Device.query.filter_by(is_active=True, location=location).all()
         
         if not devices:
-            print("No active devices to send push notifications to")
+            print(f"No active devices found for location: {location}")
             return
         
         # For Expo push notifications, we need to send to Expo's servers
@@ -1057,12 +1062,14 @@ def send_push_notification(location, current_temp, avg_temp, years=30):
                 })
                 
                 if response.status_code == 200:
-                    print(f"✅ Push notifications sent to {len(batch)} devices")
+                    print(f"✅ Push notifications sent to {len(batch)} devices in {location}")
                 else:
-                    print(f"❌ Failed to send push notifications: {response.text}")
+                    print(f"❌ Failed to send push notifications to {location}: {response.text}")
+        else:
+            print(f"No Expo devices found for location: {location}")
         
     except Exception as e:
-        print(f"Failed to send push notifications: {e}")
+        print(f"Failed to send push notifications for {location}: {e}")
 
 # --- Update /api/subscribers to use DB ---
 @app.route('/api/subscribers', methods=['GET'])
