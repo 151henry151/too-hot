@@ -1890,7 +1890,7 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
-        # Get actual Cloud Scheduler job status
+        # Get actual Cloud Scheduler job status (only if gcloud is available)
         try:
             hourly_status = subprocess.run([
                 'gcloud', 'scheduler', 'jobs', 'describe', 'hourly-temperature-check',
@@ -1912,7 +1912,7 @@ def scheduler_health():
             else:
                 next_check_info = "No active scheduler jobs"
                 active_job = "none"
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             # Fallback to frequency-based display if we can't get job status
             if CHECK_FREQUENCY == 'hourly':
                 next_check_info = "Every hour (24/7)"
@@ -2115,8 +2115,9 @@ def update_cloud_scheduler_jobs(frequency):
                 '--location=us-central1'
             ], check=True, capture_output=True)
             print("✅ Cloud Scheduler: Enabled daily job, paused hourly job")
-    except subprocess.CalledProcessError as e:
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
         print(f"❌ Error updating Cloud Scheduler jobs: {e}")
+        print("ℹ️  Note: gcloud not available in Cloud Run environment")
         return False
     return True
 
