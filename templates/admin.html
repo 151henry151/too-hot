@@ -904,6 +904,11 @@
                             }
                         }
                         
+                        // Always use next_check_info if available, regardless of time calculation
+                        if (data.next_check_info) {
+                            nextCheckText = data.next_check_info;
+                        }
+                        
                         lastCheckElement.textContent = lastCheckText;
                         nextCheckElement.textContent = nextCheckText;
                     } else {
