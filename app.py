@@ -1844,7 +1844,7 @@ def scheduler_health():
         if CHECK_FREQUENCY == 'hourly':
             next_check_info = "Every hour"
         elif CHECK_FREQUENCY == 'daily':
-            next_check_info = "Daily at 8 AM"
+            next_check_info = "Daily at 8 AM Eastern Time"
         else:
             next_check_info = f"Every {CHECK_FREQUENCY}"
         
