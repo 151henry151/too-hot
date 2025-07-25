@@ -749,11 +749,32 @@
                         const diffMs = now - lastCheck;
                         const diffMins = Math.floor(diffMs / 60000);
                         
-                        if (diffMins < 60) {
+                        // Handle edge cases and make more human-readable
+                        if (isNaN(diffMins) || diffMins < 0) {
+                            // Invalid date or future timestamp
+                            if (diffMins < 0) {
+                                const futureMins = Math.abs(diffMins);
+                                if (futureMins < 60) {
+                                    lastCheckElement.textContent = `Next check: in ${futureMins} minutes`;
+                                } else {
+                                    const futureHours = Math.floor(futureMins / 60);
+                                    lastCheckElement.textContent = `Next check: in ${futureHours} hours`;
+                                }
+                            } else {
+                                lastCheckElement.textContent = 'Last check: Invalid timestamp';
+                            }
+                        } else if (diffMins < 1) {
+                            lastCheckElement.textContent = 'Last check: Just now';
+                        } else if (diffMins < 60) {
                             lastCheckElement.textContent = `Last check: ${diffMins} minutes ago`;
                         } else {
                             const diffHours = Math.floor(diffMins / 60);
-                            lastCheckElement.textContent = `Last check: ${diffHours} hours ago`;
+                            if (diffHours < 24) {
+                                lastCheckElement.textContent = `Last check: ${diffHours} hours ago`;
+                            } else {
+                                const diffDays = Math.floor(diffHours / 24);
+                                lastCheckElement.textContent = `Last check: ${diffDays} days ago`;
+                            }
                         }
                     } else {
                         lastCheckElement.textContent = 'Last check: Never';

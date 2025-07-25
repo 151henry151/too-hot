@@ -1833,6 +1833,12 @@ def scheduler_health():
         recent_logs = SchedulerLog.query.order_by(SchedulerLog.timestamp.desc()).limit(5).all()
         last_check = recent_logs[0].timestamp if recent_logs else None
         
+        # Debug timestamp information
+        if last_check:
+            now = datetime.now()
+            diff_seconds = (now - last_check).total_seconds()
+            print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
+        
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
