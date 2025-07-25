@@ -1567,8 +1567,17 @@ def test_temperature_alert():
     else:
         current_temp = data.get('current_temp', 100)
         avg_temp = data.get('avg_temp', 85)
-    # Trigger alert logic (send emails, push notifications, etc.)
-    # For now, just log and return the data
+
+    # Send push notifications
+    send_push_notification(location, current_temp, avg_temp)
+
+    # Send emails to all subscribers
+    for subscriber in Subscriber.query.all():
+        try:
+            send_notification(subscriber.email, location, current_temp, avg_temp, years=30)
+        except Exception as e:
+            print(f"[ERROR] Failed to send test alert email to {subscriber.email}: {e}")
+
     return jsonify({
         'success': True,
         'location': location,
