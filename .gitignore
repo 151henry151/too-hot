@@ -79,4 +79,7 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Expo token (sensitive)
+expo_token.txt
+
 app-example 
