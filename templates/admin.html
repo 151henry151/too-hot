@@ -950,57 +950,36 @@
             resultDiv.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${action.charAt(0).toUpperCase() + action.slice(1)}ing scheduler...`;
             resultDiv.classList.remove('hidden');
             
-            // Determine which jobs to control based on current frequency
+            // Get current frequency setting
             const frequency = document.querySelector('input[name="frequency"]:checked').value;
-            let jobsToControl = [];
             
-            if (action === 'pause') {
-                // Pause all jobs
-                jobsToControl = [
-                    { name: 'hourly-temperature-check', action: 'pause' },
-                    { name: 'daily-temperature-check', action: 'pause' },
-                    { name: 'peak-hours-temperature-check', action: 'pause' }
-                ];
+            // Determine which job to control based on current frequency
+            let jobName;
+            if (frequency === 'hourly') {
+                jobName = 'hourly-temperature-check';
             } else {
-                // Resume only the active job based on frequency
-                if (frequency === 'hourly') {
-                    jobsToControl = [
-                        { name: 'hourly-temperature-check', action: 'resume' },
-                        { name: 'daily-temperature-check', action: 'pause' },
-                        { name: 'peak-hours-temperature-check', action: 'pause' }
-                    ];
-                } else {
-                    jobsToControl = [
-                        { name: 'daily-temperature-check', action: 'resume' },
-                        { name: 'hourly-temperature-check', action: 'pause' },
-                        { name: 'peak-hours-temperature-check', action: 'pause' }
-                    ];
-                }
+                jobName = 'daily-temperature-check';
             }
             
-            // Execute all job controls
-            Promise.all(jobsToControl.map(job => 
-                fetch('/api/scheduler/job-control', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        job_name: job.name,
-                        action: job.action
-                    })
-                }).then(response => response.json())
-            ))
-            .then(results => {
-                const successCount = results.filter(r => r.success).length;
-                const totalCount = results.length;
-                
-                if (successCount === totalCount) {
+            // Control only the active job
+            fetch('/api/scheduler/job-control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    job_name: jobName,
+                    action: action
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     resultDiv.className = 'mt-2 text-sm bg-green-100 text-green-700 p-3 rounded';
-                    resultDiv.innerHTML = `<i class="fas fa-check mr-2"></i>Successfully ${action}d scheduler (${successCount}/${totalCount} jobs)`;
+                    resultDiv.innerHTML = `<i class="fas fa-check mr-2"></i>Successfully ${action}d ${frequency} scheduler`;
                 } else {
-                    resultDiv.className = 'mt-2 text-sm bg-yellow-100 text-yellow-700 p-3 rounded';
-                    resultDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>Partially ${action}d scheduler (${successCount}/${totalCount} jobs succeeded)`;
+                    resultDiv.className = 'mt-2 text-sm bg-red-100 text-red-700 p-3 rounded';
+                    resultDiv.innerHTML = `<i class="fas fa-times mr-2"></i>Failed to ${action} ${frequency} scheduler: ${data.error}`;
                 }
                 
                 // Hide result after 8 seconds
