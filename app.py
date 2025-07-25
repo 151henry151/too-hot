@@ -1205,6 +1205,9 @@ def get_latest_expo_apk_url():
             else:
                 print("❌ No builds found for this project")
                 return None, "No builds found for this project."
+        elif resp.status_code == 404:
+            print("❌ Project not found or no builds available")
+            return None, "No Android build available yet. Make sure EXPO_TOKEN is set in your environment variables."
         else:
             print(f"❌ Expo API returned status {resp.status_code}")
             print(f"❌ Response text: {resp.text[:500]}...")
@@ -1260,13 +1263,16 @@ def get_latest_expo_ios_url():
             else:
                 print("❌ No builds found for this project")
                 return None, "No builds found for this project."
+        elif resp.status_code == 404:
+            print("❌ Project not found or no builds available")
+            return None, "No iOS build available yet. Make sure EXPO_TOKEN is set in your environment variables."
         else:
-            print(f"❌ Expo API (iOS) returned status {resp.status_code}")
+            print(f"❌ Expo API returned status {resp.status_code}")
             print(f"❌ Response text: {resp.text[:500]}...")
-            return None, f"Expo API (iOS) returned status {resp.status_code}: {resp.text[:200]}"
+            return None, f"Expo API returned status {resp.status_code}: {resp.text[:200]}"
     except Exception as e:
-        print(f"❌ Failed to fetch Expo iOS build: {e}")
-        return None, f"Failed to fetch Expo iOS build: {e}"
+        print(f"❌ Failed to fetch Expo build: {e}")
+        return None, f"Failed to fetch Expo build: {e}"
 
 # --- Admin Dashboard ---
 @app.route('/admin', methods=['GET'])
