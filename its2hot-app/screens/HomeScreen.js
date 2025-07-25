@@ -31,21 +31,6 @@ export default function HomeScreen({ navigation }) {
     checkNotificationStatus();
   }, []);
 
-  useEffect(() => {
-    // Listener for notifications received in foreground
-    const foregroundSub = Notifications.addNotificationReceivedListener(notification => {
-      logger.info('Notification received (foreground)', 'Push Notification', { notification });
-    });
-    // Listener for notifications tapped/opened
-    const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
-      logger.info('Notification tapped/opened', 'Push Notification', { response });
-    });
-    return () => {
-      foregroundSub.remove();
-      responseSub.remove();
-    };
-  }, []);
-
   const handleNotificationSignup = async () => {
     setIsLoading(true);
     try {

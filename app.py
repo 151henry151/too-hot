@@ -59,9 +59,9 @@ app.config['MAIL_DEFAULT_SENDER'] = 'tendegrees@its2hot.org'
 # app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 
 # Debug logging to see what environment variables are being read
-print(f"DEBUG: MAIL_USERNAME = {os.getenv('MAIL_USERNAME')}")
-print(f"DEBUG: MAIL_PASSWORD = {os.getenv('MAIL_PASSWORD')[:4]}..." if os.getenv('MAIL_PASSWORD') else "DEBUG: MAIL_PASSWORD = None")
-print(f"DEBUG: WEATHER_API_KEY = {os.getenv('WEATHER_API_KEY')[:4]}..." if os.getenv('WEATHER_API_KEY') else "DEBUG: WEATHER_API_KEY = None")
+print(f"DEBUG: MAIL_USERNAME = {os.getenv('MAIL_USERNAME', 'Not set')}")
+print(f"DEBUG: MAIL_PASSWORD = {os.getenv('MAIL_PASSWORD', 'Not set')[:4]}..." if os.getenv('MAIL_PASSWORD') else "DEBUG: MAIL_PASSWORD = None")
+print(f"DEBUG: WEATHER_API_KEY = {os.getenv('WEATHER_API_KEY', 'Not set')[:4]}..." if os.getenv('WEATHER_API_KEY') else "DEBUG: WEATHER_API_KEY = None")
 
 mail = Mail(app)
 
@@ -868,12 +868,16 @@ def check_temperatures():
     """Check forecasted high temperatures and send notifications if conditions are met"""
     if not WEATHER_API_KEY:
         return jsonify({'error': 'Weather API key not configured'}), 500
+    
     notifications_sent = []
+    processed_locations = set()  # Track locations to avoid duplicate push notifications
+    
     for subscriber in Subscriber.query.all():
         try:
             location = subscriber.location
             if location == 'auto':
                 location = 'New York'
+            
             # Get forecasted high temperature for today
             forecast_url = f"{WEATHER_BASE_URL}/forecast.json"
             forecast_params = {
@@ -885,20 +889,51 @@ def check_temperatures():
             }
             forecast_response = requests.get(forecast_url, params=forecast_params)
             if forecast_response.status_code != 200:
+                print(f"Failed to get forecast for {location}: {forecast_response.status_code}")
                 continue
+            
             forecast_data = forecast_response.json()
             current_temp = forecast_data['forecast']['forecastday'][0]['day']['maxtemp_f']
-            # Get historical data for today's date
+            
+            # Get historical data for today's date (last 30 years)
             today = datetime.now()
             historical_url = f"{WEATHER_BASE_URL}/history.json"
-            historical_params = {
-                'key': WEATHER_API_KEY,
-                'q': location,
-                'dt': today.strftime('%Y-%m-%d')
-            }
-            # For demo, we'll use a simplified approach
-            avg_temp = 85  # Example average temperature
+            
+            # Calculate average temperature from historical data
+            historical_temps = []
+            for year in range(1, 31):  # Last 30 years
+                try:
+                    historical_date = today.replace(year=today.year - year)
+                    historical_params = {
+                        'key': WEATHER_API_KEY,
+                        'q': location,
+                        'dt': historical_date.strftime('%Y-%m-%d')
+                    }
+                    historical_response = requests.get(historical_url, params=historical_params)
+                    
+                    if historical_response.status_code == 200:
+                        historical_data = historical_response.json()
+                        if 'forecast' in historical_data and historical_data['forecast']['forecastday']:
+                            historical_temp = historical_data['forecast']['forecastday'][0]['day']['maxtemp_f']
+                            historical_temps.append(historical_temp)
+                except Exception as e:
+                    print(f"Error fetching historical data for {location} year {year}: {e}")
+                    continue
+            
+            # Calculate average temperature
+            if historical_temps:
+                avg_temp = sum(historical_temps) / len(historical_temps)
+                print(f"{location}: Current temp {current_temp}°F, Avg temp {avg_temp:.1f}°F, Diff {current_temp - avg_temp:.1f}°F")
+            else:
+                # Fallback to hardcoded average if historical data fails
+                avg_temp = 85
+                print(f"{location}: Using fallback avg temp {avg_temp}°F")
+            
+            # Check if temperature exceeds threshold
             if current_temp >= avg_temp + TEMP_THRESHOLD:
+                print(f"🌡️ TEMPERATURE ALERT: {location} is {current_temp - avg_temp:.1f}°F hotter than average!")
+                
+                # Send email notification
                 send_notification(subscriber.email, location, current_temp, avg_temp)
                 notifications_sent.append({
                     'email': subscriber.email,
@@ -907,11 +942,18 @@ def check_temperatures():
                     'avg_temp': avg_temp,
                     'threshold': TEMP_THRESHOLD
                 })
-                if location not in [n['location'] for n in notifications_sent]:
+                
+                # Send push notification (only once per location)
+                if location not in processed_locations:
                     send_push_notification(location, current_temp, avg_temp)
+                    processed_locations.add(location)
+            else:
+                print(f"No alert for {location}: {current_temp}°F vs {avg_temp:.1f}°F avg (threshold: {TEMP_THRESHOLD}°F)")
+                
         except Exception as e:
             print(f"Error processing subscriber {subscriber.email}: {e}")
             continue
+    
     return jsonify({
         'message': f'Processed {len(Subscriber.query.all())} subscribers',
         'notifications_sent': len(notifications_sent),
@@ -1566,6 +1608,49 @@ def test_temperature_alert():
         'current_temp': current_temp,
         'avg_temp': avg_temp,
         'temp_diff': round(current_temp - avg_temp, 1)
+    })
+
+# --- Scheduler Endpoint for Cloud Scheduler ---
+@app.route('/api/scheduler/check-temperatures', methods=['GET'])
+def scheduler_check_temperatures():
+    """Scheduler endpoint for Cloud Scheduler to trigger temperature checks"""
+    try:
+        print(f"🌡️ Scheduler triggered temperature check at {datetime.now()}")
+        
+        # Call the existing temperature check function
+        result = check_temperatures()
+        
+        # Log the result
+        notifications_sent = result.get('notifications_sent', 0)
+        if notifications_sent > 0:
+            print(f"✅ Scheduler sent {notifications_sent} temperature alerts")
+        else:
+            print("ℹ️ Scheduler: No temperature alerts triggered")
+        
+        return jsonify({
+            'success': True,
+            'timestamp': datetime.now().isoformat(),
+            'result': result
+        })
+        
+    except Exception as e:
+        error_msg = f"Scheduler temperature check failed: {str(e)}"
+        print(f"❌ {error_msg}")
+        return jsonify({
+            'success': False,
+            'error': error_msg,
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+# --- Scheduler Health Check ---
+@app.route('/api/scheduler/health', methods=['GET'])
+def scheduler_health():
+    """Health check endpoint for the scheduler"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'subscribers': Subscriber.query.count(),
+        'devices': Device.query.filter_by(is_active=True).count()
     })
 
 import os
