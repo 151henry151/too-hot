@@ -1890,10 +1890,11 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
-        # Calculate next check time based on frequency
+        # Calculate next check time based on actual Cloud Scheduler configuration
         next_check_info = "Unknown"
         if CHECK_FREQUENCY == 'hourly':
-            next_check_info = "Every hour"
+            # The hourly job runs from 6 AM to 8 PM Eastern Time
+            next_check_info = "Every hour (6 AM - 8 PM Eastern Time)"
         elif CHECK_FREQUENCY == 'daily':
             next_check_info = "Daily at 8 AM Eastern Time"
         else:
