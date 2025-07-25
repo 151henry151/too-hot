@@ -1890,36 +1890,39 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
-        # Get actual Cloud Scheduler job status (only if gcloud is available)
-        try:
-            hourly_status = subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'describe', 'hourly-temperature-check',
-                '--location=us-central1', '--format=value(state)'
-            ], capture_output=True, text=True, check=True).stdout.strip()
-            
-            daily_status = subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'describe', 'daily-temperature-check',
-                '--location=us-central1', '--format=value(state)'
-            ], capture_output=True, text=True, check=True).stdout.strip()
-            
-            # Determine which job is active and show appropriate schedule
-            if hourly_status == 'ENABLED':
-                next_check_info = "Every hour (24/7)"
-                active_job = "hourly"
-            elif daily_status == 'ENABLED':
-                next_check_info = "Daily at 8 AM Eastern Time"
-                active_job = "daily"
+        # Calculate next check time based on frequency and last check
+        if CHECK_FREQUENCY == 'hourly':
+            if last_check:
+                # Next check is 1 hour after last check
+                next_check_time = last_check + timedelta(hours=1)
+                # If next check is in the past, calculate the next hour
+                now = datetime.now()
+                while next_check_time <= now:
+                    next_check_time += timedelta(hours=1)
+                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
             else:
-                next_check_info = "No active scheduler jobs"
-                active_job = "none"
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # Fallback to frequency-based display if we can't get job status
-            if CHECK_FREQUENCY == 'hourly':
-                next_check_info = "Every hour (24/7)"
-            elif CHECK_FREQUENCY == 'daily':
-                next_check_info = "Daily at 8 AM Eastern Time"
+                # No last check, next check is in 1 hour from now
+                next_check_time = datetime.now() + timedelta(hours=1)
+                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+            active_job = "hourly"
+        elif CHECK_FREQUENCY == 'daily':
+            if last_check:
+                # Next check is 8 AM tomorrow
+                tomorrow = last_check.date() + timedelta(days=1)
+                next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                # If next check is in the past, calculate next 8 AM
+                now = datetime.now()
+                while next_check_time <= now:
+                    next_check_time += timedelta(days=1)
+                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
             else:
-                next_check_info = f"Every {CHECK_FREQUENCY}"
+                # No last check, next check is 8 AM tomorrow
+                tomorrow = datetime.now().date() + timedelta(days=1)
+                next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
+            active_job = "daily"
+        else:
+            next_check_info = f"Next check: Unknown"
             active_job = CHECK_FREQUENCY
         
         return jsonify({
