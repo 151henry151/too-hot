@@ -1839,6 +1839,15 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
+        # Calculate next check time based on frequency
+        next_check_info = "Unknown"
+        if CHECK_FREQUENCY == 'hourly':
+            next_check_info = "Every hour"
+        elif CHECK_FREQUENCY == 'daily':
+            next_check_info = "Daily at 8 AM"
+        else:
+            next_check_info = f"Every {CHECK_FREQUENCY}"
+        
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
@@ -1846,6 +1855,7 @@ def scheduler_health():
             'devices': device_count,
             'weather_api': weather_status,
             'last_check': last_check.isoformat() if last_check else None,
+            'next_check_info': next_check_info,
             'threshold': TEMP_THRESHOLD,
             'frequency': CHECK_FREQUENCY
         })

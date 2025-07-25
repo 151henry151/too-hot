@@ -750,34 +750,46 @@
                         const diffMins = Math.floor(diffMs / 60000);
                         
                         // Handle edge cases and make more human-readable
+                        let lastCheckText = '';
+                        let nextCheckText = '';
+                        
                         if (isNaN(diffMins) || diffMins < 0) {
                             // Invalid date or future timestamp
                             if (diffMins < 0) {
                                 const futureMins = Math.abs(diffMins);
                                 if (futureMins < 60) {
-                                    lastCheckElement.textContent = `Next check: in ${futureMins} minutes`;
+                                    lastCheckText = 'Last check: Never';
+                                    nextCheckText = `Next check: in ${futureMins} minutes`;
                                 } else {
                                     const futureHours = Math.floor(futureMins / 60);
-                                    lastCheckElement.textContent = `Next check: in ${futureHours} hours`;
+                                    lastCheckText = 'Last check: Never';
+                                    nextCheckText = `Next check: in ${futureHours} hours`;
                                 }
                             } else {
-                                lastCheckElement.textContent = 'Last check: Invalid timestamp';
+                                lastCheckText = 'Last check: Invalid timestamp';
+                                nextCheckText = 'Next check: Unknown';
                             }
                         } else if (diffMins < 1) {
-                            lastCheckElement.textContent = 'Last check: Just now';
+                            lastCheckText = 'Last check: Just now';
+                            nextCheckText = data.next_check_info || 'Next check: Soon';
                         } else if (diffMins < 60) {
-                            lastCheckElement.textContent = `Last check: ${diffMins} minutes ago`;
+                            lastCheckText = `Last check: ${diffMins} minutes ago`;
+                            nextCheckText = data.next_check_info || 'Next check: Soon';
                         } else {
                             const diffHours = Math.floor(diffMins / 60);
                             if (diffHours < 24) {
-                                lastCheckElement.textContent = `Last check: ${diffHours} hours ago`;
+                                lastCheckText = `Last check: ${diffHours} hours ago`;
+                                nextCheckText = data.next_check_info || 'Next check: Soon';
                             } else {
                                 const diffDays = Math.floor(diffHours / 24);
-                                lastCheckElement.textContent = `Last check: ${diffDays} days ago`;
+                                lastCheckText = `Last check: ${diffDays} days ago`;
+                                nextCheckText = data.next_check_info || 'Next check: Soon';
                             }
                         }
+                        
+                        lastCheckElement.innerHTML = `${lastCheckText}<br><span class="text-sm text-gray-500">${nextCheckText}</span>`;
                     } else {
-                        lastCheckElement.textContent = 'Last check: Never';
+                        lastCheckElement.innerHTML = `Last check: Never<br><span class="text-sm text-gray-500">${data.next_check_info || 'Next check: Unknown'}</span>`;
                     }
                 })
                 .catch(err => {
