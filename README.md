@@ -119,7 +119,7 @@ FLASK_ENV=development
 # Database (optional)
 DATABASE_URL=sqlite:///too_hot.db
 
-# Expo (for push notifications)
+# Expo (for mobile app builds and push notifications)
 EXPO_TOKEN=your_expo_token_here
 ```
 
@@ -234,6 +234,7 @@ See [`cloudbuild.yaml`](cloudbuild.yaml) for automated build/deploy steps.
 - **PayPal:** Use sandbox for testing, check credentials and mode
 - **Email:** Use Gmail app password, check spam folder
 - **Push Notifications:** Ensure Expo/Firebase config is correct
+- **QR Codes:** Set EXPO_TOKEN for mobile app build QR codes in admin dashboard
 - **Logs:** Use `/api/logs` and `/admin/logs` for debugging
 - **See:** [PRINTFUL_SETUP_GUIDE.md](PRINTFUL_SETUP_GUIDE.md) and [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 

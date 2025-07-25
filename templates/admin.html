@@ -21,7 +21,7 @@
             </div>
 
             <!-- Expo Android Build QR Code Section -->
-            {% if expo_apk_url %}
+            {% if expo_apk_url and expo_apk_url.startswith('http') %}
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
               <h2 class="text-2xl font-bold text-gray-800 mb-2">
                 <i class="fab fa-android mr-2 text-green-600"></i>
@@ -43,12 +43,13 @@
                 <p class="text-red-600 font-semibold mb-2">{{ expo_apk_error }}</p>
               {% endif %}
               <p class="text-gray-600">No Android build available yet.</p>
+              <p class="text-sm text-gray-500 mt-2">Make sure EXPO_TOKEN is set in your environment variables.</p>
             </div>
             {% endif %}
             <!-- End Expo Android Build QR Code Section -->
 
             <!-- Expo iOS Build QR Code Section -->
-            {% if expo_ios_url %}
+            {% if expo_ios_url and expo_ios_url.startswith('http') %}
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
               <h2 class="text-2xl font-bold text-gray-800 mb-2">
                 <i class="fab fa-apple mr-2 text-gray-800"></i>
@@ -70,6 +71,7 @@
                 <p class="text-red-600 font-semibold mb-2">{{ expo_ios_error }}</p>
               {% endif %}
               <p class="text-gray-600">No iOS build available yet.</p>
+              <p class="text-sm text-gray-500 mt-2">Make sure EXPO_TOKEN is set in your environment variables.</p>
             </div>
             {% endif %}
             <!-- End Expo iOS Build QR Code Section -->
