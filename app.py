@@ -1719,7 +1719,14 @@ def scheduler_check_temperatures():
         print(f"🌡️ Scheduler triggered temperature check at {start_time}")
         
         # Call the existing temperature check function
-        result = check_temperatures()
+        response = check_temperatures()
+        
+        # Extract JSON data from the response
+        if hasattr(response, 'get_json'):
+            result = response.get_json()
+        else:
+            # If it's already a dict, use it directly
+            result = response if isinstance(response, dict) else {}
         
         # Calculate duration
         duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -1775,8 +1782,9 @@ def scheduler_check_temperatures():
         return jsonify({
             'success': False,
             'error': error_msg,
-            'timestamp': start_time.isoformat()
-        }), 500
+            'timestamp': start_time.isoformat(),
+            'duration_ms': duration_ms
+        })
 
 # --- Scheduler Health Check ---
 @app.route('/api/scheduler/health', methods=['GET'])
