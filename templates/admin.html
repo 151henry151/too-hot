@@ -1017,9 +1017,12 @@
 
         // Add event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            // Set default log type to scheduler
+            document.getElementById('log-type').value = 'scheduler';
+            
             loadSettings();
             loadSchedulerHealth();
-            loadLogs(); // Load initial logs
+            loadLogs(); // Load initial logs (will now default to scheduler logs)
             
             document.getElementById('save-settings').addEventListener('click', saveSettings);
             
