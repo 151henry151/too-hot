@@ -1615,15 +1615,37 @@ def log_push():
 @app.route('/api/log-debug', methods=['POST'])
 def log_debug():
     data = request.get_json()
+    
+    # Map mobile app fields to database fields
+    source = data.get('platform') or data.get('source')  # Mobile app sends 'platform', backend expects 'source'
+    device_id = data.get('deviceId') or data.get('device_id')
+    email = data.get('email')
+    message = data.get('message')
+    context = data.get('context')
+    
+    # Add extra device info to context if available
+    device_info = []
+    if data.get('deviceName'):
+        device_info.append(f"Device: {data.get('deviceName')}")
+    if data.get('deviceModel'):
+        device_info.append(f"Model: {data.get('deviceModel')}")
+    if data.get('level'):
+        device_info.append(f"Level: {data.get('level')}")
+    
+    if device_info:
+        context = f"{context or ''} | {' | '.join(device_info)}"
+    
     log = DebugLog(
-        source=data.get('source'),
-        device_id=data.get('device_id'),
-        email=data.get('email'),
-        message=data.get('message'),
-        context=data.get('context')
+        source=source,
+        device_id=device_id,
+        email=email,
+        message=message,
+        context=context
     )
     db.session.add(log)
     db.session.commit()
+    
+    print(f"📱 Mobile log saved: {source} - {message[:50]}...")
     return jsonify({'success': True, 'log_id': log.id})
 
 # --- API: Fetch Logs ---
