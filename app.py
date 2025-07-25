@@ -1174,58 +1174,70 @@ def get_latest_expo_apk_url():
         return EXPO_BUILD_CACHE["url"], None
     try:
         expo_token = os.getenv('EXPO_TOKEN')
-        headers = {"Accept": "application/json"}
-        if expo_token:
-            headers["Authorization"] = f"Bearer {expo_token}"
-        else:
+        if not expo_token:
             return None, "EXPO_TOKEN environment variable is not set."
         
-        print(f"🔍 Fetching Android builds with token: {expo_token[:10]}..." if expo_token else "❌ No EXPO_TOKEN found")
+        print(f"🔍 Fetching Android builds with token: {expo_token[:10]}...")
         
-        # Try multiple API endpoint formats
-        endpoints_to_try = [
-            f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=android&limit=1",
-            f"https://expo.dev/api/v1/projects/{EXPO_PROJECT_ID}/builds?platform=android&limit=1",
-            f"https://expo.dev/api/v2/builds?projectId={EXPO_PROJECT_ID}&platform=android&limit=1",
-            f"https://expo.dev/api/v1/builds?projectId={EXPO_PROJECT_ID}&platform=android&limit=1"
-        ]
+        # Use the new EAS API endpoint
+        endpoint = f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {expo_token}"
+        }
         
-        for endpoint in endpoints_to_try:
-            print(f"🔍 Trying endpoint: {endpoint}")
-            resp = requests.get(endpoint, headers=headers)
-            print(f"📱 Android API response status: {resp.status_code}")
+        # Get builds for Android platform
+        params = {
+            "platform": "android",
+            "limit": 1,
+            "status": "finished"  # Only get completed builds
+        }
+        
+        print(f"🔍 Trying endpoint: {endpoint}")
+        resp = requests.get(endpoint, headers=headers, params=params)
+        print(f"📱 Android API response status: {resp.status_code}")
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            builds = data.get("data", [])
+            print(f"📱 Found {len(builds)} Android builds")
             
-            if resp.status_code == 200:
-                data = resp.json()
-                builds = data.get("data", [])
-                print(f"📱 Found {len(builds)} Android builds")
+            if builds:
+                build = builds[0]
+                print(f"📱 Latest build status: {build.get('status')}")
+                print(f"📱 Latest build artifacts: {build.get('artifacts', {})}")
                 
-                if builds:
-                    build = builds[0]
-                    print(f"📱 Latest build status: {build.get('status')}")
-                    print(f"📱 Latest build artifacts: {build.get('artifacts', {})}")
-                    
-                    apk_url = build.get("artifacts", {}).get("applicationArchiveUrl")
-                    if apk_url:
-                        print(f"📱 APK URL found: {apk_url}")
-                        EXPO_BUILD_CACHE["url"] = apk_url
-                        EXPO_BUILD_CACHE["timestamp"] = now
-                        return apk_url, None
-                    else:
-                        print("❌ No APK artifact found in latest build")
-                        return None, "No APK artifact found in latest build."
+                # Try different artifact field names
+                artifacts = build.get("artifacts", {})
+                apk_url = (
+                    artifacts.get("applicationArchiveUrl") or 
+                    artifacts.get("url") or 
+                    build.get("url")
+                )
+                
+                if apk_url:
+                    print(f"📱 APK URL found: {apk_url}")
+                    EXPO_BUILD_CACHE["url"] = apk_url
+                    EXPO_BUILD_CACHE["timestamp"] = now
+                    return apk_url, None
                 else:
-                    print("❌ No builds found for this project")
-                    return None, "No builds found for this project."
-            elif resp.status_code == 404:
-                print(f"❌ 404 for endpoint: {endpoint}")
-                continue
+                    print("❌ No APK artifact found in latest build")
+                    print(f"❌ Build data: {build}")
+                    return None, "No APK artifact found in latest build."
             else:
-                print(f"❌ Expo API returned status {resp.status_code} for {endpoint}")
-                print(f"❌ Response text: {resp.text[:200]}...")
+                print("❌ No builds found for this project")
+                return None, "No builds found for this project."
+        elif resp.status_code == 401:
+            print("❌ Unauthorized - check your EXPO_TOKEN")
+            return None, "Unauthorized - check your EXPO_TOKEN."
+        elif resp.status_code == 404:
+            print("❌ Project not found or access denied")
+            return None, "Project not found or access denied."
+        else:
+            print(f"❌ Expo API returned status {resp.status_code}")
+            print(f"❌ Response text: {resp.text[:200]}...")
+            return None, f"Expo API error: {resp.status_code}"
         
-        # If we get here, none of the endpoints worked
-        return None, "No Android build available yet. Make sure EXPO_TOKEN is set in your environment variables."
     except Exception as e:
         print(f"❌ Failed to fetch Expo build: {e}")
         return None, f"Failed to fetch Expo build: {e}"
@@ -1239,58 +1251,70 @@ def get_latest_expo_ios_url():
         return EXPO_IOS_BUILD_CACHE["url"], None
     try:
         expo_token = os.getenv('EXPO_TOKEN')
-        headers = {"Accept": "application/json"}
-        if expo_token:
-            headers["Authorization"] = f"Bearer {expo_token}"
-        else:
+        if not expo_token:
             return None, "EXPO_TOKEN environment variable is not set."
         
-        print(f"🍎 Fetching iOS builds with token: {expo_token[:10]}..." if expo_token else "❌ No EXPO_TOKEN found")
+        print(f"🍎 Fetching iOS builds with token: {expo_token[:10]}...")
         
-        # Try multiple API endpoint formats
-        endpoints_to_try = [
-            f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=ios&limit=1",
-            f"https://expo.dev/api/v1/projects/{EXPO_PROJECT_ID}/builds?platform=ios&limit=1",
-            f"https://expo.dev/api/v2/builds?projectId={EXPO_PROJECT_ID}&platform=ios&limit=1",
-            f"https://expo.dev/api/v1/builds?projectId={EXPO_PROJECT_ID}&platform=ios&limit=1"
-        ]
+        # Use the new EAS API endpoint
+        endpoint = f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {expo_token}"
+        }
         
-        for endpoint in endpoints_to_try:
-            print(f"🍎 Trying endpoint: {endpoint}")
-            resp = requests.get(endpoint, headers=headers)
-            print(f"🍎 iOS API response status: {resp.status_code}")
+        # Get builds for iOS platform
+        params = {
+            "platform": "ios",
+            "limit": 1,
+            "status": "finished"  # Only get completed builds
+        }
+        
+        print(f"🍎 Trying endpoint: {endpoint}")
+        resp = requests.get(endpoint, headers=headers, params=params)
+        print(f"🍎 iOS API response status: {resp.status_code}")
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            builds = data.get("data", [])
+            print(f"🍎 Found {len(builds)} iOS builds")
             
-            if resp.status_code == 200:
-                data = resp.json()
-                builds = data.get("data", [])
-                print(f"🍎 Found {len(builds)} iOS builds")
+            if builds:
+                build = builds[0]
+                print(f"🍎 Latest build status: {build.get('status')}")
+                print(f"🍎 Latest build artifacts: {build.get('artifacts', {})}")
                 
-                if builds:
-                    build = builds[0]
-                    print(f"🍎 Latest build status: {build.get('status')}")
-                    print(f"🍎 Latest build artifacts: {build.get('artifacts', {})}")
-                    
-                    ios_url = build.get("artifacts", {}).get("applicationArchiveUrl")
-                    if ios_url:
-                        print(f"🍎 iOS URL found: {ios_url}")
-                        EXPO_IOS_BUILD_CACHE["url"] = ios_url
-                        EXPO_IOS_BUILD_CACHE["timestamp"] = now
-                        return ios_url, None
-                    else:
-                        print("❌ No iOS artifact found in latest build")
-                        return None, "No iOS artifact found in latest build."
+                # Try different artifact field names
+                artifacts = build.get("artifacts", {})
+                ios_url = (
+                    artifacts.get("applicationArchiveUrl") or 
+                    artifacts.get("url") or 
+                    build.get("url")
+                )
+                
+                if ios_url:
+                    print(f"🍎 iOS URL found: {ios_url}")
+                    EXPO_IOS_BUILD_CACHE["url"] = ios_url
+                    EXPO_IOS_BUILD_CACHE["timestamp"] = now
+                    return ios_url, None
                 else:
-                    print("❌ No builds found for this project")
-                    return None, "No builds found for this project."
-            elif resp.status_code == 404:
-                print(f"❌ 404 for endpoint: {endpoint}")
-                continue
+                    print("❌ No iOS artifact found in latest build")
+                    print(f"❌ Build data: {build}")
+                    return None, "No iOS artifact found in latest build."
             else:
-                print(f"❌ Expo API returned status {resp.status_code} for {endpoint}")
-                print(f"❌ Response text: {resp.text[:200]}...")
+                print("❌ No builds found for this project")
+                return None, "No builds found for this project."
+        elif resp.status_code == 401:
+            print("❌ Unauthorized - check your EXPO_TOKEN")
+            return None, "Unauthorized - check your EXPO_TOKEN."
+        elif resp.status_code == 404:
+            print("❌ Project not found or access denied")
+            return None, "Project not found or access denied."
+        else:
+            print(f"❌ Expo API returned status {resp.status_code}")
+            print(f"❌ Response text: {resp.text[:200]}...")
+            return None, f"Expo API error: {resp.status_code}"
         
-        # If we get here, none of the endpoints worked
-        return None, "No iOS build available yet. Make sure EXPO_TOKEN is set in your environment variables."
     except Exception as e:
         print(f"❌ Failed to fetch Expo build: {e}")
         return None, f"Failed to fetch Expo build: {e}"
