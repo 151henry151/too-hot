@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as Location from 'expo-location';
 import { useLogger, logError } from '../hooks/useLogger';
 
 const { width } = Dimensions.get('window');
@@ -20,6 +21,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const logger = useLogger();
 
   // Check notification permission on mount
@@ -30,6 +32,66 @@ export default function HomeScreen({ navigation }) {
     };
     checkNotificationStatus();
   }, []);
+
+  const getUserLocation = async () => {
+    try {
+      logger.info('Requesting location permission', 'Location');
+      
+      // Request location permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        logger.warn('Location permission denied', 'Location');
+        Alert.alert(
+          'Location Permission Required',
+          'To provide accurate temperature alerts for your area, we need access to your location.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => Location.openSettings() }
+          ]
+        );
+        return null;
+      }
+
+      logger.info('Getting current location', 'Location');
+      
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000,
+        distanceInterval: 10,
+      });
+
+      logger.info('Location obtained', 'Location', {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy
+      });
+
+      // Reverse geocode to get city name
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (geocode && geocode.length > 0) {
+        const place = geocode[0];
+        const city = place.city || place.subregion || place.region || 'Unknown';
+        const state = place.region || '';
+        const locationString = state ? `${city}, ${state}` : city;
+        
+        logger.info('Location resolved', 'Location', { locationString });
+        return locationString;
+      } else {
+        logger.warn('Could not resolve location name', 'Location');
+        return 'Unknown Location';
+      }
+
+    } catch (error) {
+      logger.error('Location error: ' + (error?.toString?.() || String(error)), 'Location');
+      Alert.alert('Location Error', 'Could not get your location. Using default location.');
+      return 'auto';
+    }
+  };
 
   const handleNotificationSignup = async () => {
     setIsLoading(true);
@@ -62,9 +124,16 @@ export default function HomeScreen({ navigation }) {
       const token = (await Notifications.getExpoPushTokenAsync()).data;
       logger.info('Push token: ' + token, 'Push Token');
       
-      // Get user's location (you can implement geolocation here)
-      // For now, we'll use a default location or get it from user input
-      const userLocation = 'auto'; // This should be replaced with actual location detection
+      // Get user's location using geolocation
+      const userLocation = await getUserLocation();
+      if (userLocation === null) {
+        // User denied location permission
+        setIsLoading(false);
+        return;
+      }
+      
+      setUserLocation(userLocation);
+      logger.info('Using location for registration: ' + userLocation, 'Location');
       
       // Use production API endpoint for device registration
       const response = await fetch('https://its2hot.org/api/register-device', {
@@ -79,8 +148,12 @@ export default function HomeScreen({ navigation }) {
       });
       if (response.ok) {
         setIsSubscribed(true);
-        logger.log('Device registered for push notifications', 'Register Device', { token });
-        Alert.alert('Success!', 'You will now receive alerts when temperatures are 10°F+ hotter than average.', [{ text: 'OK' }]);
+        logger.log('Device registered for push notifications', 'Register Device', { token, location: userLocation });
+        Alert.alert(
+          'Success!', 
+          `You will now receive alerts for ${userLocation} when temperatures are 10°F+ hotter than average.`, 
+          [{ text: 'OK' }]
+        );
       } else {
         const errorData = await response.json();
         const msg = errorData.error || 'Failed to register device. Please try again.';
@@ -173,13 +246,21 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
 
         {isSubscribed && !isLoading && (
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#ef4444', marginTop: 8 }]}
-            onPress={handleNotificationDisable}
-          >
-            <Ionicons name="notifications-off" size={20} color="white" />
-            <Text style={styles.buttonText}>Disable Notifications</Text>
-          </TouchableOpacity>
+          <>
+            {userLocation && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={16} color="#6b7280" />
+                <Text style={styles.locationText}>Monitoring: {userLocation}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#ef4444', marginTop: 8 }]}
+              onPress={handleNotificationDisable}
+            >
+              <Ionicons name="notifications-off" size={20} color="white" />
+              <Text style={styles.buttonText}>Disable Notifications</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {/* Shirt Section */}
@@ -464,5 +545,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'white',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 }); 

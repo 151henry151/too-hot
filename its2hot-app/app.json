@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.romp.its2hot"
+      "bundleIdentifier": "com.romp.its2hot",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to provide accurate temperature alerts for your area."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,6 +25,10 @@
       "googleServicesFile": "./google-services.json",
       "useNextNotificationsApi": true,
       "package": "com.romp.its2hot",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "notification": {
         "icon": "./assets/images/notification-icon.png",
         "color": "#1a1a1a"
@@ -35,6 +42,7 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "expo-location",
       [
         "expo-splash-screen",
         {
