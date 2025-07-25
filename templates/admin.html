@@ -28,10 +28,21 @@
                 Latest Android App Build
               </h2>
               <p class="text-gray-600 mb-4">Scan to install the latest preview build on your device:</p>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_apk_url }}" alt="Expo Android Build QR Code" class="mb-4" style="width:200px;height:200px;"/>
+              <div class="mb-4">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_apk_url|urlencode }}" 
+                     alt="Expo Android Build QR Code" 
+                     class="qr-code-image" 
+                     style="width:200px;height:200px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666;">
+                  QR Code unavailable<br>
+                  <a href="{{ expo_apk_url }}" target="_blank" class="text-blue-600 underline">Click to download</a>
+                </div>
+              </div>
               <a href="{{ expo_apk_url }}" target="_blank" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors font-semibold">
                 <i class="fas fa-download mr-2"></i>Download APK
               </a>
+              <p class="text-xs text-gray-500 mt-2">URL: {{ expo_apk_url[:50] }}...</p>
             </div>
             {% else %}
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
@@ -56,10 +67,21 @@
                 Latest iPhone App Build
               </h2>
               <p class="text-gray-600 mb-4">Scan to install the latest preview build on your iOS device:</p>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_ios_url }}" alt="Expo iOS Build QR Code" class="mb-4" style="width:200px;height:200px;"/>
+              <div class="mb-4">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_ios_url|urlencode }}" 
+                     alt="Expo iOS Build QR Code" 
+                     class="qr-code-image" 
+                     style="width:200px;height:200px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666;">
+                  QR Code unavailable<br>
+                  <a href="{{ expo_ios_url }}" target="_blank" class="text-blue-600 underline">Click to download</a>
+                </div>
+              </div>
               <a href="{{ expo_ios_url }}" target="_blank" class="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors font-semibold">
                 <i class="fas fa-download mr-2"></i>Download iOS Build
               </a>
+              <p class="text-xs text-gray-500 mt-2">URL: {{ expo_ios_url[:50] }}...</p>
             </div>
             {% else %}
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
@@ -866,7 +888,33 @@
             
             // Refresh scheduler health every 30 seconds
             setInterval(loadSchedulerHealth, 30000);
+            
+            // Handle QR code loading errors
+            handleQRCodeErrors();
         });
+        
+        function handleQRCodeErrors() {
+            // Check all QR code images and handle errors
+            const qrImages = document.querySelectorAll('.qr-code-image');
+            qrImages.forEach(img => {
+                img.addEventListener('error', function() {
+                    console.log('QR code failed to load:', this.src);
+                    this.style.display = 'none';
+                    const fallback = this.nextElementSibling;
+                    if (fallback && fallback.classList.contains('qr-fallback')) {
+                        fallback.style.display = 'flex';
+                    }
+                });
+                
+                img.addEventListener('load', function() {
+                    console.log('QR code loaded successfully');
+                    const fallback = this.nextElementSibling;
+                    if (fallback && fallback.classList.contains('qr-fallback')) {
+                        fallback.style.display = 'none';
+                    }
+                });
+            });
+        }
     </script>
 </body>
 </html> 
