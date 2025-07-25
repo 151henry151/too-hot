@@ -9,6 +9,8 @@ import {
   Image,
   Dimensions,
   Platform,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
@@ -22,6 +24,8 @@ export default function HomeScreen({ navigation }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [manualLocation, setManualLocation] = useState('');
   const logger = useLogger();
 
   // Check notification permission on mount
@@ -41,14 +45,8 @@ export default function HomeScreen({ navigation }) {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         logger.warn('Location permission denied', 'Location');
-        Alert.alert(
-          'Location Permission Required',
-          'To provide accurate temperature alerts for your area, we need access to your location.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Settings', onPress: () => Location.openSettings() }
-          ]
-        );
+        // Show modal for manual location input instead of alert
+        setShowLocationModal(true);
         return null;
       }
 
@@ -127,38 +125,14 @@ export default function HomeScreen({ navigation }) {
       // Get user's location using geolocation
       const userLocation = await getUserLocation();
       if (userLocation === null) {
-        // User denied location permission
+        // User denied location permission - modal will handle manual input
         setIsLoading(false);
         return;
       }
       
-      setUserLocation(userLocation);
-      logger.info('Using location for registration: ' + userLocation, 'Location');
-      
-      // Use production API endpoint for device registration
-      const response = await fetch('https://its2hot.org/api/register-device', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          push_token: token, 
-          platform: 'expo', 
-          device_type: Platform.OS,
-          location: userLocation
-        })
-      });
-      if (response.ok) {
-        setIsSubscribed(true);
-        logger.log('Device registered for push notifications', 'Register Device', { token, location: userLocation });
-        Alert.alert(
-          'Success!', 
-          `You will now receive alerts for ${userLocation} when temperatures are 10°F+ hotter than average.`, 
-          [{ text: 'OK' }]
-        );
-      } else {
-        const errorData = await response.json();
-        const msg = errorData.error || 'Failed to register device. Please try again.';
-        logger.error('Backend error: ' + msg, 'Backend response');
-        Alert.alert('Error', msg);
+      // If we got a location, register the device
+      if (userLocation) {
+        await registerDeviceWithLocation(userLocation);
       }
     } catch (error) {
       logger.error('Notification setup error: ' + (error?.toString?.() || String(error)), 'Exception');
@@ -198,6 +172,61 @@ export default function HomeScreen({ navigation }) {
 
   const handleShopPress = () => {
     navigation.navigate('Shop');
+  };
+
+  const handleManualLocationSubmit = async () => {
+    if (!manualLocation.trim()) {
+      Alert.alert('Error', 'Please enter your city and state.');
+      return;
+    }
+
+    setShowLocationModal(false);
+    setManualLocation('');
+    
+    // Continue with device registration using manual location
+    await registerDeviceWithLocation(manualLocation.trim());
+  };
+
+  const registerDeviceWithLocation = async (location) => {
+    try {
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      logger.info('Push token: ' + token, 'Push Token');
+      
+      setUserLocation(location);
+      logger.info('Using manual location for registration: ' + location, 'Location');
+      
+      // Use production API endpoint for device registration
+      const response = await fetch('https://its2hot.org/api/register-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          push_token: token, 
+          platform: 'expo', 
+          device_type: Platform.OS,
+          location: location
+        })
+      });
+
+      if (response.ok) {
+        setIsSubscribed(true);
+        logger.log('Device registered for push notifications', 'Register Device', { token, location });
+        Alert.alert(
+          'Success!', 
+          `You will now receive alerts for ${location} when temperatures are 10°F+ hotter than average.`, 
+          [{ text: 'OK' }]
+        );
+      } else {
+        const errorData = await response.json();
+        const msg = errorData.error || 'Failed to register device. Please try again.';
+        logger.error('Backend error: ' + msg, 'Backend response');
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      logger.error('Device registration error: ' + (error?.toString?.() || String(error)), 'Exception');
+      Alert.alert('Error', 'Failed to register device. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -359,6 +388,53 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {/* Manual Location Input Modal */}
+      <Modal
+        visible={showLocationModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="location" size={48} color="#3b82f6" style={styles.modalIcon} />
+            <Text style={styles.modalTitle}>Enter Your Location</Text>
+            <Text style={styles.modalDescription}>
+              To receive accurate temperature alerts, please enter your city and state.
+            </Text>
+            
+            <TextInput
+              style={styles.locationInput}
+              placeholder="e.g., New York, NY"
+              value={manualLocation}
+              onChangeText={setManualLocation}
+              autoFocus={true}
+              autoCapitalize="words"
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowLocationModal(false);
+                  setManualLocation('');
+                  setIsLoading(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSubmit]}
+                onPress={handleManualLocationSubmit}
+              >
+                <Text style={styles.modalButtonTextSubmit}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -560,6 +636,86 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginLeft: 6,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalIcon: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  locationInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: '#f9fafb',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  modalButtonSubmit: {
+    backgroundColor: '#3b82f6',
+  },
+  modalButtonTextCancel: {
+    color: '#6b7280',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalButtonTextSubmit: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
     fontWeight: '500',
   },
 }); 
