@@ -9,11 +9,17 @@ ENV FLASK_ENV=production
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and Google Cloud SDK
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
+        curl \
+        gnupg \
+    && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
+    && echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && apt-get update \
+    && apt-get install -y google-cloud-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
