@@ -1938,11 +1938,122 @@ def scheduler_health():
             'active_job': active_job
         })
     except Exception as e:
+        # Log the error
+        log_scheduler_activity(
+            trigger_type='health_check',
+            locations_checked=[],
+            temperatures_found={},
+            alerts_triggered=0,
+            threshold_used=TEMP_THRESHOLD,
+            status='error',
+            error_message=f'Scheduler health check failed: {str(e)}'
+        )
         return jsonify({
             'status': 'unhealthy',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
         }), 500
+
+@app.route('/api/scheduler/job-control', methods=['POST'])
+@requires_auth
+def scheduler_job_control():
+    """Control Cloud Scheduler jobs (pause/resume)"""
+    try:
+        data = request.get_json()
+        job_name = data.get('job_name')
+        action = data.get('action')
+        
+        if not job_name or not action:
+            return jsonify({'success': False, 'error': 'Missing job_name or action'}), 400
+        
+        if action not in ['pause', 'resume']:
+            return jsonify({'success': False, 'error': 'Action must be pause or resume'}), 400
+        
+        # Get project ID from environment or metadata
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+        if not project_id:
+            # Try to get from metadata service
+            try:
+                metadata_response = requests.get('http://metadata.google.internal/computeMetadata/v1/project/project-id', 
+                                              headers={'Metadata-Flavor': 'Google'}, timeout=2)
+                if metadata_response.status_code == 200:
+                    project_id = metadata_response.text
+            except:
+                pass
+        
+        if not project_id:
+            error_msg = "Could not determine Google Cloud project ID"
+            log_scheduler_activity(
+                trigger_type='job_control',
+                locations_checked=[],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='error',
+                error_message=f'{error_msg}: {job_name} {action}'
+            )
+            return jsonify({'success': False, 'error': error_msg}), 500
+        
+        # Use Cloud Scheduler REST API
+        import requests
+        from google.auth import default
+        from google.auth.transport.requests import Request
+        
+        # Get credentials
+        credentials, _ = default()
+        credentials.refresh(Request())
+        
+        # Base URL for Cloud Scheduler API
+        base_url = f"https://cloudscheduler.googleapis.com/v1/projects/{project_id}/locations/us-central1/jobs"
+        headers = {
+            'Authorization': f'Bearer {credentials.token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Make the API call
+        control_url = f"{base_url}/{job_name}:{action}"
+        response = requests.post(control_url, headers=headers)
+        
+        if response.status_code == 200:
+            success_msg = f"Successfully {action}d {job_name}"
+            print(f"✅ {success_msg}")
+            log_scheduler_activity(
+                trigger_type='job_control',
+                locations_checked=[job_name],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='success',
+                error_message=None
+            )
+            return jsonify({'success': True, 'message': success_msg})
+        else:
+            error_msg = f"Failed to {action} {job_name}: HTTP {response.status_code}"
+            print(f"❌ {error_msg}")
+            log_scheduler_activity(
+                trigger_type='job_control',
+                locations_checked=[job_name],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='error',
+                error_message=f'{error_msg} - Response: {response.text}'
+            )
+            return jsonify({'success': False, 'error': error_msg}), 500
+            
+    except Exception as e:
+        error_msg = f"Error controlling scheduler job: {str(e)}"
+        print(f"❌ {error_msg}")
+        log_scheduler_activity(
+            trigger_type='job_control',
+            locations_checked=[job_name] if 'job_name' in locals() else [],
+            temperatures_found={},
+            alerts_triggered=0,
+            threshold_used=TEMP_THRESHOLD,
+            status='error',
+            error_message=error_msg
+        )
+        return jsonify({'success': False, 'error': error_msg}), 500
 
 import os
 import time
@@ -2126,7 +2237,17 @@ def update_cloud_scheduler_jobs(frequency):
                 pass
         
         if not project_id:
-            print("❌ Could not determine Google Cloud project ID")
+            error_msg = "Could not determine Google Cloud project ID"
+            print(f"❌ {error_msg}")
+            log_scheduler_activity(
+                trigger_type='settings_update',
+                locations_checked=[],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='error',
+                error_message=f'{error_msg} - Frequency: {frequency}'
+            )
             return False
         
         # Use Cloud Scheduler REST API instead of gcloud
@@ -2159,14 +2280,44 @@ def update_cloud_scheduler_jobs(frequency):
                 print(f"🔍 Daily job pause response: {pause_response.status_code}")
                 
                 if resume_response.status_code == 200 and pause_response.status_code == 200:
-                    print("✅ Cloud Scheduler: Enabled hourly job, paused daily job")
+                    success_msg = "Cloud Scheduler: Enabled hourly job, paused daily job"
+                    print(f"✅ {success_msg}")
+                    log_scheduler_activity(
+                        trigger_type='settings_update',
+                        locations_checked=['hourly-temperature-check', 'daily-temperature-check'],
+                        temperatures_found={},
+                        alerts_triggered=0,
+                        threshold_used=TEMP_THRESHOLD,
+                        status='success',
+                        error_message=None
+                    )
                     return True
                 else:
-                    print(f"❌ Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}")
+                    error_msg = f"Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}"
+                    print(f"❌ {error_msg}")
+                    log_scheduler_activity(
+                        trigger_type='settings_update',
+                        locations_checked=['hourly-temperature-check', 'daily-temperature-check'],
+                        temperatures_found={},
+                        alerts_triggered=0,
+                        threshold_used=TEMP_THRESHOLD,
+                        status='error',
+                        error_message=f'{error_msg} - Frequency: {frequency}'
+                    )
                     return False
                     
             except Exception as e:
-                print(f"❌ Error updating Cloud Scheduler jobs via API: {e}")
+                error_msg = f"Error updating Cloud Scheduler jobs via API: {e}"
+                print(f"❌ {error_msg}")
+                log_scheduler_activity(
+                    trigger_type='settings_update',
+                    locations_checked=['hourly-temperature-check', 'daily-temperature-check'],
+                    temperatures_found={},
+                    alerts_triggered=0,
+                    threshold_used=TEMP_THRESHOLD,
+                    status='error',
+                    error_message=f'{error_msg} - Frequency: {frequency}'
+                )
                 return False
                 
         elif frequency == 'daily':
@@ -2183,19 +2334,59 @@ def update_cloud_scheduler_jobs(frequency):
                 print(f"🔍 Hourly job pause response: {pause_response.status_code}")
                 
                 if resume_response.status_code == 200 and pause_response.status_code == 200:
-                    print("✅ Cloud Scheduler: Enabled daily job, paused hourly job")
+                    success_msg = "Cloud Scheduler: Enabled daily job, paused hourly job"
+                    print(f"✅ {success_msg}")
+                    log_scheduler_activity(
+                        trigger_type='settings_update',
+                        locations_checked=['daily-temperature-check', 'hourly-temperature-check'],
+                        temperatures_found={},
+                        alerts_triggered=0,
+                        threshold_used=TEMP_THRESHOLD,
+                        status='success',
+                        error_message=None
+                    )
                     return True
                 else:
-                    print(f"❌ Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}")
+                    error_msg = f"Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}"
+                    print(f"❌ {error_msg}")
+                    log_scheduler_activity(
+                        trigger_type='settings_update',
+                        locations_checked=['daily-temperature-check', 'hourly-temperature-check'],
+                        temperatures_found={},
+                        alerts_triggered=0,
+                        threshold_used=TEMP_THRESHOLD,
+                        status='error',
+                        error_message=f'{error_msg} - Frequency: {frequency}'
+                    )
                     return False
                     
             except Exception as e:
-                print(f"❌ Error updating Cloud Scheduler jobs via API: {e}")
+                error_msg = f"Error updating Cloud Scheduler jobs via API: {e}"
+                print(f"❌ {error_msg}")
+                log_scheduler_activity(
+                    trigger_type='settings_update',
+                    locations_checked=['daily-temperature-check', 'hourly-temperature-check'],
+                    temperatures_found={},
+                    alerts_triggered=0,
+                    threshold_used=TEMP_THRESHOLD,
+                    status='error',
+                    error_message=f'{error_msg} - Frequency: {frequency}'
+                )
                 return False
                 
     except Exception as e:
-        print(f"❌ Error updating Cloud Scheduler jobs: {e}")
+        error_msg = f"Error updating Cloud Scheduler jobs: {e}"
+        print(f"❌ {error_msg}")
         print("ℹ️  Note: This may not work in local development environment")
+        log_scheduler_activity(
+            trigger_type='settings_update',
+            locations_checked=[],
+            temperatures_found={},
+            alerts_triggered=0,
+            threshold_used=TEMP_THRESHOLD,
+            status='error',
+            error_message=f'{error_msg} - Frequency: {frequency}'
+        )
         return False
 
 @app.route('/api/settings', methods=['POST'])
