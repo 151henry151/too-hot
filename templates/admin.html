@@ -99,7 +99,7 @@
             <!-- End Expo iOS Build QR Code Section -->
 
             <!-- Stats Cards -->
-            <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <div class="flex items-center">
                         <div class="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -132,19 +132,6 @@
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Temperature Alerts</h3>
                             <p class="text-2xl font-bold text-purple-600" id="alert-count">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-orange-100 text-orange-600">
-                            <i class="fas fa-clock text-xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Scheduler Status</h3>
-                            <p class="text-lg font-bold" id="scheduler-status">Loading...</p>
-                            <p class="text-xs text-gray-500" id="scheduler-last-check">Last check: Unknown</p>
                         </div>
                     </div>
                 </div>
@@ -285,7 +272,7 @@
                 <div id="push-subscribers-list" class="overflow-x-auto"></div>
             </div>
 
-            <!-- Email Subscribers Table (unchanged) -->
+            <!-- Email Subscribers Table -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-envelope mr-2 text-green-600"></i>
@@ -296,26 +283,36 @@
                     <table class="min-w-full bg-white rounded shadow">
                         <thead>
                             <tr>
-                                <th class="py-2 px-4">Email</th>
-                                <th class="py-2 px-4">Location</th>
-                                <th class="py-2 px-4">Subscribed At</th>
+                                <th class="py-2 px-4 text-left">Email</th>
+                                <th class="py-2 px-4 text-left">Location</th>
+                                <th class="py-2 px-4 text-left">Date</th>
+                                <th class="py-2 px-4 text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for sub in email_subs %}
-                            <tr>
-                                <td class="py-2 px-4">{{ sub.email }}</td>
-                                <td class="py-2 px-4">{{ sub.location }}</td>
-                                <td class="py-2 px-4">{{ sub.subscribed_at }}</td>
-                                <td class="py-2 px-4">
-                                  <button class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 mr-1" onclick="sendTestAlertEmail('{{ sub.email }}', '{{ sub.location }}')">
-                                    <i class="fas fa-envelope-open-text"></i> Test Alert
+                            <tr class="border-b">
+                                <td class="py-2 px-4 text-sm">{{ sub.email }}</td>
+                                <td class="py-2 px-4 text-sm">{{ sub.location }}</td>
+                                <td class="py-2 px-4 text-sm">
+                                    {% if sub.subscribed_at %}
+                                        {% set date_obj = sub.subscribed_at.split('T')[0] if 'T' in sub.subscribed_at else sub.subscribed_at.split(' ')[0] %}
+                                        {% set parts = date_obj.split('-') %}
+                                        {% if parts|length == 3 %}
+                                            {{ parts[1] }}/{{ parts[2] }}/{{ parts[0][2:] }}
+                                        {% else %}
+                                            {{ sub.subscribed_at[:10] }}
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td class="py-2 px-4 text-sm">
+                                  <button class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 mr-1 text-xs" onclick="resendWelcomeEmail('{{ sub.email }}', '{{ sub.location }}')" title="Resend Welcome Email">
+                                    <i class="fas fa-paper-plane"></i>
                                   </button>
-                                  <button class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 mr-1" onclick="resendWelcomeEmail('{{ sub.email }}', '{{ sub.location }}')">
-                                    <i class="fas fa-paper-plane"></i> Resend Welcome
-                                  </button>
-                                  <button class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" onclick="deleteSubscriber('{{ sub.email }}')">
-                                    <i class="fas fa-trash"></i> Delete
+                                  <button class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs" onclick="deleteSubscriber('{{ sub.email }}')" title="Delete Subscriber">
+                                    <i class="fas fa-trash"></i>
                                   </button>
                                 </td>
                             </tr>
@@ -336,8 +333,9 @@
                 </h2>
                 <div class="mb-4">
                     <h3 class="font-semibold mb-2">Test Email Notification</h3>
-                    <input type="email" id="test-email-input" placeholder="Enter email address" class="border px-2 py-1 rounded mr-2">
-                    <button onclick="sendTestEmail()" class="bg-green-600 text-white px-4 py-1 rounded">Send Test Email</button>
+                    <button onclick="sendTestEmail()" class="bg-green-600 text-white px-4 py-1 rounded">
+                        <i class="fas fa-envelope mr-2"></i>Send Test Email to All Subscribers
+                    </button>
                     <span id="test-email-result" class="ml-2 text-sm"></span>
                 </div>
                 <div class="mb-4">
@@ -358,6 +356,13 @@
                         <span id="test-alert-result" class="ml-2 text-sm"></span>
                     </form>
                 </div>
+                <div class="mt-4">
+                    <h3 class="font-semibold mb-2">Test Scheduler</h3>
+                    <button onclick="testScheduler()" class="bg-purple-600 text-white px-4 py-1 rounded">
+                        <i class="fas fa-play mr-2"></i>Run Scheduler Test
+                    </button>
+                    <span id="test-scheduler-result" class="ml-2 text-sm"></span>
+                </div>
             </div>
 
             <!-- System Status -->
@@ -367,7 +372,7 @@
                     System Status
                 </h2>
                 
-                <div class="grid md:grid-cols-2 gap-6">
+                <div class="grid md:grid-cols-3 gap-6">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 mb-3">Services</h3>
                         <div class="space-y-2">
@@ -391,6 +396,18 @@
                     </div>
                     
                     <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Scheduler Status</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-3" id="scheduler-indicator"></div>
+                                <span class="text-sm font-semibold" id="scheduler-status">Loading...</span>
+                            </div>
+                            <div class="text-xs text-gray-500" id="scheduler-last-check">Last check: Unknown</div>
+                            <div class="text-xs text-gray-500" id="scheduler-next-check">Next check: Unknown</div>
+                        </div>
+                    </div>
+                    
+                    <div>
                         <h3 class="text-lg font-semibold text-gray-700 mb-3">Quick Actions</h3>
                         <div class="space-y-2">
                             <button onclick="window.open('https://its2hot.org', '_blank')" 
@@ -403,7 +420,7 @@
                                 <i class="fas fa-sync-alt mr-2"></i>
                                 Refresh Data
                             </button>
-                            <a href="/admin/time-tracking" class="w-full text-left px-3 py-2 bg-gray-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" style="text-decoration: none;">
+                            <a href="/admin/time-tracking" class="block w-full text-left px-3 py-2 bg-gray-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" style="text-decoration: none;">
                                 <i class="fas fa-clock mr-2"></i> View Project Time Tracking
                             </a>
                         </div>
@@ -573,17 +590,45 @@
 
         // --- Test Actions ---
         function sendTestEmail() {
-            const email = document.getElementById('test-email-input').value;
-            if (!email) return alert('Enter an email address');
+            const button = document.querySelector('button[onclick="sendTestEmail()"]');
+            const resultSpan = document.getElementById('test-email-result');
+            const originalText = button.innerHTML;
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+            resultSpan.textContent = '';
+            
             fetch('/admin/send-test-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ send_to_all: true })
             })
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('test-email-result').textContent = data.message || data.error || '';
-                });
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultSpan.textContent = `✅ Success: ${data.message || 'Test emails sent to all subscribers'}`;
+                    resultSpan.className = 'ml-2 text-sm text-green-600';
+                    
+                    // Show additional details if available
+                    if (data.emails_sent !== undefined) {
+                        resultSpan.textContent += ` | Emails sent: ${data.emails_sent}`;
+                    }
+                    if (data.failed_sends !== undefined && data.failed_sends > 0) {
+                        resultSpan.textContent += ` | Failed: ${data.failed_sends}`;
+                    }
+                } else {
+                    resultSpan.textContent = `❌ Error: ${data.error || 'Failed to send test emails'}`;
+                    resultSpan.className = 'ml-2 text-sm text-red-600';
+                }
+            })
+            .catch(error => {
+                resultSpan.textContent = `❌ Error: ${error.message}`;
+                resultSpan.className = 'ml-2 text-sm text-red-600';
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
         }
         function sendTestPush() {
             const title = document.getElementById('test-push-title').value;
@@ -619,6 +664,56 @@
                     document.getElementById('test-alert-result').textContent = data.success ? `Alert: ${data.location}, Current: ${data.current_temp}, Avg: ${data.avg_temp}, Diff: ${data.temp_diff}` : (data.error || 'Error');
                     loadLogs();
                 });
+        }
+
+        function testScheduler() {
+            const button = document.querySelector('button[onclick="testScheduler()"]');
+            const resultSpan = document.getElementById('test-scheduler-result');
+            const originalText = button.innerHTML;
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Running...';
+            resultSpan.textContent = '';
+            
+            fetch('/api/scheduler/check-temperatures', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultSpan.textContent = `✅ Success: ${data.message || 'Scheduler test completed'}`;
+                    resultSpan.className = 'ml-2 text-sm text-green-600';
+                    
+                    // Show detailed results if available
+                    if (data.locations_checked) {
+                        resultSpan.textContent += ` | Locations: ${data.locations_checked.join(', ')}`;
+                    }
+                    if (data.alerts_triggered !== undefined) {
+                        resultSpan.textContent += ` | Alerts: ${data.alerts_triggered}`;
+                    }
+                    if (data.duration_ms) {
+                        resultSpan.textContent += ` | Duration: ${data.duration_ms}ms`;
+                    }
+                } else {
+                    resultSpan.textContent = `❌ Error: ${data.error || 'Scheduler test failed'}`;
+                    resultSpan.className = 'ml-2 text-sm text-red-600';
+                }
+                
+                // Refresh scheduler logs and health status
+                setTimeout(() => {
+                    loadSchedulerLogs();
+                    loadSchedulerHealth();
+                }, 1000);
+            })
+            .catch(error => {
+                resultSpan.textContent = `❌ Error: ${error.message}`;
+                resultSpan.className = 'ml-2 text-sm text-red-600';
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
         }
 
         function sendTestAlertEmail(email, location) {
@@ -734,13 +829,17 @@
                 .then(data => {
                     const statusElement = document.getElementById('scheduler-status');
                     const lastCheckElement = document.getElementById('scheduler-last-check');
+                    const nextCheckElement = document.getElementById('scheduler-next-check');
+                    const indicatorElement = document.getElementById('scheduler-indicator');
                     
                     if (data.status === 'healthy') {
-                        statusElement.textContent = '🟢 Healthy';
-                        statusElement.className = 'text-lg font-bold text-green-600';
+                        statusElement.textContent = 'Healthy';
+                        statusElement.className = 'text-sm font-semibold text-green-600';
+                        indicatorElement.className = 'w-3 h-3 bg-green-500 rounded-full mr-3';
                     } else {
-                        statusElement.textContent = '🔴 Unhealthy';
-                        statusElement.className = 'text-lg font-bold text-red-600';
+                        statusElement.textContent = 'Unhealthy';
+                        statusElement.className = 'text-sm font-semibold text-red-600';
+                        indicatorElement.className = 'w-3 h-3 bg-red-500 rounded-full mr-3';
                     }
                     
                     if (data.last_check) {
@@ -787,15 +886,19 @@
                             }
                         }
                         
-                        lastCheckElement.innerHTML = `${lastCheckText}<br><span class="text-sm text-gray-500">${nextCheckText}</span>`;
+                        lastCheckElement.textContent = lastCheckText;
+                        nextCheckElement.textContent = nextCheckText;
                     } else {
-                        lastCheckElement.innerHTML = `Last check: Never<br><span class="text-sm text-gray-500">${data.next_check_info || 'Next check: Unknown'}</span>`;
+                        lastCheckElement.textContent = 'Last check: Never';
+                        nextCheckElement.textContent = data.next_check_info || 'Next check: Unknown';
                     }
                 })
                 .catch(err => {
-                    document.getElementById('scheduler-status').textContent = '🔴 Error';
-                    document.getElementById('scheduler-status').className = 'text-lg font-bold text-red-600';
+                    document.getElementById('scheduler-status').textContent = 'Error';
+                    document.getElementById('scheduler-status').className = 'text-sm font-semibold text-red-600';
                     document.getElementById('scheduler-last-check').textContent = 'Last check: Error';
+                    document.getElementById('scheduler-next-check').textContent = 'Next check: Unknown';
+                    document.getElementById('scheduler-indicator').className = 'w-3 h-3 bg-red-500 rounded-full mr-3';
                 });
         }
 
