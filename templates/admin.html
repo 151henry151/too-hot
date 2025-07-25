@@ -435,7 +435,7 @@
                         html += data.subscribers.map(sub => `
                             <tr>
                                 <td class='py-2 px-4'>${sub.id}</td>
-                                <td class='py-2 px-4'>${sub.push_token ? sub.push_token.substring(0, 30) + '...' : 'Unknown'}</td>
+                                <td class='py-2 px-4'>${sub.push_token ? sub.push_token : 'Unknown'}</td>
                                 <td class='py-2 px-4'>${sub.platform || 'N/A'}</td>
                                 <td class='py-2 px-4'>${sub.device_type || 'N/A'}</td>
                                 <td class='py-2 px-4'>${sub.registered_at ? new Date(sub.registered_at).toLocaleString() : 'Unknown'}</td>
