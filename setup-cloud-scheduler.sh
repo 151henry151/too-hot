@@ -48,6 +48,14 @@ gcloud scheduler jobs create http peak-hours-temperature-check \
     --description="Peak hours temperature check at 12 PM and 4 PM" \
     --time-zone="America/New_York"
 
+echo ""
+echo "Note: You can control the frequency of checks by:"
+echo "1. Disabling jobs you don't want: gcloud scheduler jobs pause [job-name] --location=$REGION"
+echo "2. Using the admin dashboard to set frequency to 'daily' for production"
+echo "3. For production, you may want to pause hourly and peak-hours jobs:"
+echo "   gcloud scheduler jobs pause hourly-temperature-check --location=$REGION"
+echo "   gcloud scheduler jobs pause peak-hours-temperature-check --location=$REGION"
+
 echo "Cloud Scheduler jobs created successfully!"
 echo ""
 echo "Job details:"

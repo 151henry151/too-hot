@@ -115,6 +115,61 @@
                 </div>
             </div>
 
+            <!-- Temperature Alert Settings Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-thermometer-half mr-2 text-red-600"></i>
+                    Temperature Alert Settings
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Threshold Toggle -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Alert Threshold</h3>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="threshold" value="1" id="threshold-dev" class="mr-2" checked>
+                                <span class="text-sm font-medium text-gray-700">Development Mode (1°F)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="threshold" value="10" id="threshold-prod" class="mr-2">
+                                <span class="text-sm font-medium text-gray-700">Production Mode (10°F)</span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Controls how much hotter than average temperatures need to be to trigger alerts.</p>
+                    </div>
+
+                    <!-- Check Frequency Toggle -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Check Frequency</h3>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="frequency" value="hourly" id="frequency-hourly" class="mr-2" checked>
+                                <span class="text-sm font-medium text-gray-700">Hourly (Development)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="frequency" value="daily" id="frequency-daily" class="mr-2">
+                                <span class="text-sm font-medium text-gray-700">Daily (Production)</span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Controls how often temperature checks are performed.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button id="save-settings" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Settings
+                    </button>
+                    <button id="test-alert" class="ml-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-play mr-2"></i>
+                        Test Alert
+                    </button>
+                </div>
+
+                <div id="settings-result" class="hidden mt-4 p-4 rounded-md"></div>
+            </div>
+
             <!-- Push Notification Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">
@@ -576,6 +631,89 @@
         }
         // Load on page load
         loadMobileLogs();
+
+        // --- Temperature Alert Settings ---
+        function loadSettings() {
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(data => {
+                    // Set threshold
+                    if (data.threshold === 10) {
+                        document.getElementById('threshold-prod').checked = true;
+                    } else {
+                        document.getElementById('threshold-dev').checked = true;
+                    }
+                    
+                    // Set frequency
+                    if (data.frequency === 'daily') {
+                        document.getElementById('frequency-daily').checked = true;
+                    } else {
+                        document.getElementById('frequency-hourly').checked = true;
+                    }
+                })
+                .catch(err => {
+                    console.log('Settings not loaded, using defaults');
+                });
+        }
+
+        function saveSettings() {
+            const threshold = document.querySelector('input[name="threshold"]:checked').value;
+            const frequency = document.querySelector('input[name="frequency"]:checked').value;
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ threshold: parseInt(threshold), frequency })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('settings-result');
+                    resultDiv.className = data.success ? 'mt-4 p-4 rounded-md bg-green-100 text-green-800' : 'mt-4 p-4 rounded-md bg-red-100 text-red-800';
+                    resultDiv.textContent = data.message || data.error || 'Settings saved';
+                    resultDiv.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        resultDiv.classList.add('hidden');
+                    }, 3000);
+                });
+        }
+
+        function testAlert() {
+            const threshold = document.querySelector('input[name="threshold"]:checked').value;
+            const frequency = document.querySelector('input[name="frequency"]:checked').value;
+            
+            fetch('/api/test-temperature-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    location: 'New York',
+                    use_real_data: true,
+                    threshold: parseInt(threshold),
+                    frequency
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('settings-result');
+                    resultDiv.className = data.success ? 'mt-4 p-4 rounded-md bg-green-100 text-green-800' : 'mt-4 p-4 rounded-md bg-red-100 text-red-800';
+                    resultDiv.textContent = data.success ? 
+                        `Test alert sent! Location: ${data.location}, Current: ${data.current_temp}°F, Avg: ${data.avg_temp}°F, Diff: ${data.temp_diff}°F` : 
+                        (data.error || 'Test failed');
+                    resultDiv.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        resultDiv.classList.add('hidden');
+                    }, 5000);
+                });
+        }
+
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            
+            document.getElementById('save-settings').addEventListener('click', saveSettings);
+            document.getElementById('test-alert').addEventListener('click', testAlert);
+        });
     </script>
 </body>
 </html> 

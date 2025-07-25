@@ -177,8 +177,9 @@ WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 WEATHER_BASE_URL = "http://api.weatherapi.com/v1"
 NWS_BASE_URL = "https://api.weather.gov"  # Free National Weather Service API
 
-# Temperature threshold for climate alerts (lowered to 1°F for testing)
-TEMP_THRESHOLD = 1  # degrees Fahrenheit above average
+# Temperature threshold for climate alerts (configurable via admin)
+TEMP_THRESHOLD = int(os.getenv('TEMP_THRESHOLD', '1'))  # degrees Fahrenheit above average
+CHECK_FREQUENCY = os.getenv('CHECK_FREQUENCY', 'hourly')  # 'hourly' or 'daily'
 
 # Printful API configuration
 PRINTFUL_API_KEY = os.getenv('PRINTFUL_API_KEY')
@@ -1577,6 +1578,8 @@ def test_temperature_alert():
     data = request.get_json()
     location = data.get('location', 'New York')
     use_real_data = data.get('use_real_data', False)
+    test_threshold = data.get('threshold', TEMP_THRESHOLD)  # Use provided threshold or current setting
+    
     if use_real_data:
         # Fetch forecasted high temperature for today
         forecast_url = f"{WEATHER_BASE_URL}/forecast.json"
@@ -1592,22 +1595,29 @@ def test_temperature_alert():
         current_temp = data.get('current_temp', 100)
         avg_temp = data.get('avg_temp', 85)
 
-    # Send push notifications
-    send_push_notification(location, current_temp, avg_temp)
+    # Check if temperature exceeds the test threshold
+    temp_diff = current_temp - avg_temp
+    should_alert = temp_diff >= test_threshold
+    
+    if should_alert:
+        # Send push notifications
+        send_push_notification(location, current_temp, avg_temp)
 
-    # Send emails to all subscribers
-    for subscriber in Subscriber.query.all():
-        try:
-            send_notification(subscriber.email, location, current_temp, avg_temp, years=30)
-        except Exception as e:
-            print(f"[ERROR] Failed to send test alert email to {subscriber.email}: {e}")
+        # Send emails to all subscribers
+        for subscriber in Subscriber.query.all():
+            try:
+                send_notification(subscriber.email, location, current_temp, avg_temp, years=30)
+            except Exception as e:
+                print(f"[ERROR] Failed to send test alert email to {subscriber.email}: {e}")
 
     return jsonify({
         'success': True,
         'location': location,
         'current_temp': current_temp,
         'avg_temp': avg_temp,
-        'temp_diff': round(current_temp - avg_temp, 1)
+        'temp_diff': round(temp_diff, 1),
+        'threshold': test_threshold,
+        'alert_triggered': should_alert
     })
 
 # --- Scheduler Endpoint for Cloud Scheduler ---
@@ -1791,6 +1801,45 @@ def admin_delete_subscriber():
 def admin_mobile_logs():
     logs = DebugLog.query.filter(DebugLog.source.in_(['android', 'ios'])).order_by(DebugLog.timestamp.desc()).limit(100).all()
     return jsonify({'logs': [l.as_dict() for l in logs]})
+
+# --- Settings API Endpoints ---
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """Get current temperature alert settings"""
+    return jsonify({
+        'threshold': TEMP_THRESHOLD,
+        'frequency': CHECK_FREQUENCY
+    })
+
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    """Update temperature alert settings"""
+    global TEMP_THRESHOLD, CHECK_FREQUENCY
+    
+    data = request.get_json()
+    new_threshold = data.get('threshold', TEMP_THRESHOLD)
+    new_frequency = data.get('frequency', CHECK_FREQUENCY)
+    
+    # Validate threshold
+    if new_threshold not in [1, 10]:
+        return jsonify({'success': False, 'error': 'Threshold must be 1 or 10 degrees'}), 400
+    
+    # Validate frequency
+    if new_frequency not in ['hourly', 'daily']:
+        return jsonify({'success': False, 'error': 'Frequency must be hourly or daily'}), 400
+    
+    # Update global variables
+    TEMP_THRESHOLD = new_threshold
+    CHECK_FREQUENCY = new_frequency
+    
+    print(f"✅ Settings updated: Threshold={TEMP_THRESHOLD}°F, Frequency={CHECK_FREQUENCY}")
+    
+    return jsonify({
+        'success': True,
+        'message': f'Settings updated: {TEMP_THRESHOLD}°F threshold, {CHECK_FREQUENCY} checks',
+        'threshold': TEMP_THRESHOLD,
+        'frequency': CHECK_FREQUENCY
+    })
 
 if __name__ == '__main__':
     # Test Printful connection on startup
