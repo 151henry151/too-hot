@@ -1340,7 +1340,7 @@ start_receipt_fetcher()
 @app.route('/api/send-push-notification', methods=['POST'])
 def api_send_push_notification():
     data = request.get_json()
-    title = data.get('title', 'IT\'S TOO HOT!')
+    title = data.get('title', "🌡️ IT'S TOO HOT! - " + (data.get('location') or ''))
     body = data.get('body', 'Temperature alert!')
     url = data.get('url', '/')
     location = data.get('location')

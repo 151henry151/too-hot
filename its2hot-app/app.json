@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "its2hot-app",
-    "slug": "its2hot-app",
+    "name": "TOO HOT",
+    "slug": "too-hot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -21,7 +21,11 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "useNextNotificationsApi": true,
-      "package": "com.romp.its2hot"
+      "package": "com.romp.its2hot",
+      "notification": {
+        "icon": "./assets/images/notification-icon.png",
+        "color": "#1a1a1a"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -30,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
