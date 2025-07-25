@@ -1112,12 +1112,14 @@ EXPO_BUILD_CACHE_TTL = 300  # 5 minutes
 def get_latest_expo_apk_url():
     now = time.time()
     if EXPO_BUILD_CACHE["url"] and now - EXPO_BUILD_CACHE["timestamp"] < EXPO_BUILD_CACHE_TTL:
-        return EXPO_BUILD_CACHE["url"]
+        return EXPO_BUILD_CACHE["url"], None
     try:
         expo_token = os.getenv('EXPO_TOKEN')
         headers = {"Accept": "application/json"}
         if expo_token:
             headers["Authorization"] = f"Bearer {expo_token}"
+        else:
+            return None, "EXPO_TOKEN environment variable is not set."
         resp = requests.get(
             f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=android&limit=1",
             headers=headers
@@ -1131,12 +1133,15 @@ def get_latest_expo_apk_url():
                 if apk_url:
                     EXPO_BUILD_CACHE["url"] = apk_url
                     EXPO_BUILD_CACHE["timestamp"] = now
-                    return apk_url
+                    return apk_url, None
+                else:
+                    return None, "No APK artifact found in latest build."
+            else:
+                return None, "No builds found for this project."
         else:
-            print(f"[ERROR] Expo API returned status {resp.status_code}: {resp.text}")
+            return None, f"Expo API returned status {resp.status_code}: {resp.text}"
     except Exception as e:
-        print(f"[ERROR] Failed to fetch Expo build: {e}")
-    return None
+        return None, f"Failed to fetch Expo build: {e}"
 
 EXPO_IOS_BUILD_CACHE = {"url": None, "timestamp": 0}
 EXPO_IOS_BUILD_CACHE_TTL = 300  # 5 minutes
@@ -1144,12 +1149,14 @@ EXPO_IOS_BUILD_CACHE_TTL = 300  # 5 minutes
 def get_latest_expo_ios_url():
     now = time.time()
     if EXPO_IOS_BUILD_CACHE["url"] and now - EXPO_IOS_BUILD_CACHE["timestamp"] < EXPO_IOS_BUILD_CACHE_TTL:
-        return EXPO_IOS_BUILD_CACHE["url"]
+        return EXPO_IOS_BUILD_CACHE["url"], None
     try:
         expo_token = os.getenv('EXPO_TOKEN')
         headers = {"Accept": "application/json"}
         if expo_token:
             headers["Authorization"] = f"Bearer {expo_token}"
+        else:
+            return None, "EXPO_TOKEN environment variable is not set."
         resp = requests.get(
             f"https://expo.dev/api/v2/projects/{EXPO_PROJECT_ID}/builds?platform=ios&limit=1",
             headers=headers
@@ -1163,12 +1170,15 @@ def get_latest_expo_ios_url():
                 if ios_url:
                     EXPO_IOS_BUILD_CACHE["url"] = ios_url
                     EXPO_IOS_BUILD_CACHE["timestamp"] = now
-                    return ios_url
+                    return ios_url, None
+                else:
+                    return None, "No iOS artifact found in latest build."
+            else:
+                return None, "No builds found for this project."
         else:
-            print(f"[ERROR] Expo API (iOS) returned status {resp.status_code}: {resp.text}")
+            return None, f"Expo API (iOS) returned status {resp.status_code}: {resp.text}"
     except Exception as e:
-        print(f"[ERROR] Failed to fetch Expo iOS build: {e}")
-    return None
+        return None, f"Failed to fetch Expo iOS build: {e}"
 
 # --- Admin Dashboard ---
 @app.route('/admin', methods=['GET'])
@@ -1177,14 +1187,16 @@ def admin_dashboard():
     email_subs = [s.as_dict() for s in Subscriber.query.all()]
     notif_log = load_json_file('notification_log.json', default=[])
     trigger_log = load_json_file('trigger_log.json', default=[])
-    expo_apk_url = get_latest_expo_apk_url()
-    expo_ios_url = get_latest_expo_ios_url()
+    expo_apk_url, expo_apk_error = get_latest_expo_apk_url()
+    expo_ios_url, expo_ios_error = get_latest_expo_ios_url()
     return render_template('admin.html',
         email_subs=email_subs,
         notif_log=notif_log,
         trigger_log=trigger_log,
         expo_apk_url=expo_apk_url,
-        expo_ios_url=expo_ios_url)
+        expo_apk_error=expo_apk_error,
+        expo_ios_url=expo_ios_url,
+        expo_ios_error=expo_ios_error)
 
 # --- Resend Welcome Email ---
 @app.route('/admin/resend-welcome', methods=['POST'])

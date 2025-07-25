@@ -39,6 +39,9 @@
                 <i class="fab fa-android mr-2 text-green-600"></i>
                 Latest Android App Build
               </h2>
+              {% if expo_apk_error %}
+                <p class="text-red-600 font-semibold mb-2">{{ expo_apk_error }}</p>
+              {% endif %}
               <p class="text-gray-600">No Android build available yet.</p>
             </div>
             {% endif %}
@@ -63,6 +66,9 @@
                 <i class="fab fa-apple mr-2 text-gray-800"></i>
                 Latest iPhone App Build
               </h2>
+              {% if expo_ios_error %}
+                <p class="text-red-600 font-semibold mb-2">{{ expo_ios_error }}</p>
+              {% endif %}
               <p class="text-gray-600">No iOS build available yet.</p>
             </div>
             {% endif %}
