@@ -2112,33 +2112,91 @@ def get_settings():
 def update_cloud_scheduler_jobs(frequency):
     """Update Cloud Scheduler jobs based on frequency setting"""
     try:
+        # Get project ID from environment or metadata
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+        if not project_id:
+            # Try to get from metadata service
+            try:
+                import requests
+                metadata_response = requests.get('http://metadata.google.internal/computeMetadata/v1/project/project-id', 
+                                              headers={'Metadata-Flavor': 'Google'}, timeout=2)
+                if metadata_response.status_code == 200:
+                    project_id = metadata_response.text
+            except:
+                pass
+        
+        if not project_id:
+            print("❌ Could not determine Google Cloud project ID")
+            return False
+        
+        # Use Cloud Scheduler REST API instead of gcloud
+        import requests
+        from google.auth import default
+        from google.auth.transport.requests import Request
+        
+        # Get credentials
+        credentials, _ = default()
+        credentials.refresh(Request())
+        
+        # Base URL for Cloud Scheduler API
+        base_url = f"https://cloudscheduler.googleapis.com/v1/projects/{project_id}/locations/us-central1/jobs"
+        headers = {
+            'Authorization': f'Bearer {credentials.token}',
+            'Content-Type': 'application/json'
+        }
+        
         if frequency == 'hourly':
-            # Enable hourly job, disable daily job
-            subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'update', 'http', 'hourly-temperature-check',
-                '--schedule=0 * * * *', '--location=us-central1'
-            ], check=True, capture_output=True)
-            subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'pause', 'daily-temperature-check',
-                '--location=us-central1'
-            ], check=True, capture_output=True)
-            print("✅ Cloud Scheduler: Enabled hourly job, paused daily job")
+            # Resume hourly job, pause daily job
+            try:
+                # Resume hourly job
+                resume_url = f"{base_url}/hourly-temperature-check:resume"
+                resume_response = requests.post(resume_url, headers=headers)
+                print(f"🔍 Hourly job resume response: {resume_response.status_code}")
+                
+                # Pause daily job
+                pause_url = f"{base_url}/daily-temperature-check:pause"
+                pause_response = requests.post(pause_url, headers=headers)
+                print(f"🔍 Daily job pause response: {pause_response.status_code}")
+                
+                if resume_response.status_code == 200 and pause_response.status_code == 200:
+                    print("✅ Cloud Scheduler: Enabled hourly job, paused daily job")
+                    return True
+                else:
+                    print(f"❌ Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}")
+                    return False
+                    
+            except Exception as e:
+                print(f"❌ Error updating Cloud Scheduler jobs via API: {e}")
+                return False
+                
         elif frequency == 'daily':
-            # Enable daily job, disable hourly job
-            subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'update', 'http', 'daily-temperature-check',
-                '--schedule=0 8 * * *', '--location=us-central1'
-            ], check=True, capture_output=True)
-            subprocess.run([
-                'gcloud', 'scheduler', 'jobs', 'pause', 'hourly-temperature-check',
-                '--location=us-central1'
-            ], check=True, capture_output=True)
-            print("✅ Cloud Scheduler: Enabled daily job, paused hourly job")
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            # Resume daily job, pause hourly job
+            try:
+                # Resume daily job
+                resume_url = f"{base_url}/daily-temperature-check:resume"
+                resume_response = requests.post(resume_url, headers=headers)
+                print(f"🔍 Daily job resume response: {resume_response.status_code}")
+                
+                # Pause hourly job
+                pause_url = f"{base_url}/hourly-temperature-check:pause"
+                pause_response = requests.post(pause_url, headers=headers)
+                print(f"🔍 Hourly job pause response: {pause_response.status_code}")
+                
+                if resume_response.status_code == 200 and pause_response.status_code == 200:
+                    print("✅ Cloud Scheduler: Enabled daily job, paused hourly job")
+                    return True
+                else:
+                    print(f"❌ Cloud Scheduler API calls failed: resume={resume_response.status_code}, pause={pause_response.status_code}")
+                    return False
+                    
+            except Exception as e:
+                print(f"❌ Error updating Cloud Scheduler jobs via API: {e}")
+                return False
+                
+    except Exception as e:
         print(f"❌ Error updating Cloud Scheduler jobs: {e}")
-        print("ℹ️  Note: gcloud not available in Cloud Run environment")
+        print("ℹ️  Note: This may not work in local development environment")
         return False
-    return True
 
 @app.route('/api/settings', methods=['POST'])
 def update_settings():
@@ -2180,35 +2238,38 @@ def migrate_database():
     try:
         from sqlalchemy import text
         
-        # Check if location column exists in Device table
-        result = db.session.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'device' AND column_name = 'location'
-        """))
-        
-        if not result.fetchone():
-            print("Adding 'location' column to Device table...")
-            db.session.execute(text("""
-                ALTER TABLE device 
-                ADD COLUMN location VARCHAR(128) DEFAULT 'auto'
-            """))
-            db.session.commit()
-            print("✅ Successfully added 'location' column to Device table")
-            return jsonify({
-                'success': True,
-                'message': 'Successfully added location column to Device table'
-            })
-        else:
+        # For SQLite, check if location column exists by trying to query it
+        try:
+            # Try to query the location column
+            db.session.execute(text("SELECT location FROM device LIMIT 1"))
             print("✅ 'location' column already exists in Device table")
             return jsonify({
                 'success': True,
                 'message': 'Location column already exists in Device table'
             })
+        except Exception as e:
+            if "no such column" in str(e):
+                print("Adding 'location' column to Device table...")
+                db.session.execute(text("""
+                    ALTER TABLE device 
+                    ADD COLUMN location VARCHAR(128) DEFAULT 'auto'
+                """))
+                db.session.commit()
+                print("✅ Successfully added 'location' column to Device table")
+                return jsonify({
+                    'success': True,
+                    'message': 'Successfully added location column to Device table'
+                })
+            else:
+                raise e
             
     except Exception as e:
         print(f"❌ Error during migration: {e}")
         db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Migration failed: {str(e)}'
+        }), 500
         return jsonify({
             'success': False,
             'error': f'Migration failed: {str(e)}'
