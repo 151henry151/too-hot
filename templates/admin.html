@@ -264,12 +264,20 @@
 
             <!-- Scheduler Logs Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                <i class="fas fa-clock mr-2 text-orange-600"></i> Scheduler Logs
-                <button onclick="loadSchedulerLogs()" class="ml-4 bg-orange-600 text-white px-4 py-1 rounded"><i class="fas fa-sync-alt"></i> Refresh</button>
-                <button onclick="testScheduler()" class="ml-2 bg-green-600 text-white px-4 py-1 rounded"><i class="fas fa-play"></i> Test Check</button>
-              </h2>
-              <div id="scheduler-logs-list" class="max-h-64 overflow-y-auto text-sm bg-gray-50 rounded p-2"></div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-list-alt mr-2 text-purple-600"></i>
+                        Scheduler Logs
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button onclick="loadSchedulerLogs()" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="scheduler-logs-list" class="max-h-96 overflow-y-auto border rounded p-2 bg-gray-50">
+                    <div class="text-gray-500">Loading scheduler logs...</div>
+                </div>
             </div>
 
             <!-- Push Subscribers Table with Management -->
@@ -855,25 +863,6 @@
                 .catch(err => {
                     document.getElementById('scheduler-logs-list').innerHTML = 
                         '<div class="text-red-500">Error loading scheduler logs</div>';
-                });
-        }
-
-        function testScheduler() {
-            if (!confirm('Run a test temperature check now?')) return;
-            
-            fetch('/api/scheduler/check-temperatures?trigger_type=manual')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(`Test completed successfully!\nDuration: ${data.duration_ms}ms\nAlerts: ${data.result.notifications_sent}`);
-                    } else {
-                        alert(`Test failed: ${data.error}`);
-                    }
-                    loadSchedulerLogs();
-                    loadSchedulerHealth();
-                })
-                .catch(err => {
-                    alert('Test failed: ' + err.message);
                 });
         }
 
