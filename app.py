@@ -865,37 +865,29 @@ def unregister_device():
 
 @app.route('/api/check-temperatures', methods=['GET'])
 def check_temperatures():
-    """Check current temperatures and send notifications if conditions are met"""
+    """Check forecasted high temperatures and send notifications if conditions are met"""
     if not WEATHER_API_KEY:
         return jsonify({'error': 'Weather API key not configured'}), 500
-    
     notifications_sent = []
-    
     for subscriber in Subscriber.query.all():
         try:
-            # Get current weather and historical data
             location = subscriber.location
-            
-            # For demo purposes, we'll use a sample location (NYC)
-            # In production, you'd get the user's actual location
             if location == 'auto':
                 location = 'New York'
-            
-            # Get current weather
-            current_url = f"{WEATHER_BASE_URL}/current.json"
-            current_params = {
+            # Get forecasted high temperature for today
+            forecast_url = f"{WEATHER_BASE_URL}/forecast.json"
+            forecast_params = {
                 'key': WEATHER_API_KEY,
                 'q': location,
-                'aqi': 'no'
+                'days': 1,
+                'aqi': 'no',
+                'alerts': 'no'
             }
-            
-            current_response = requests.get(current_url, params=current_params)
-            if current_response.status_code != 200:
+            forecast_response = requests.get(forecast_url, params=forecast_params)
+            if forecast_response.status_code != 200:
                 continue
-            
-            current_data = current_response.json()
-            current_temp = current_data['current']['temp_f']
-            
+            forecast_data = forecast_response.json()
+            current_temp = forecast_data['forecast']['forecastday'][0]['day']['maxtemp_f']
             # Get historical data for today's date
             today = datetime.now()
             historical_url = f"{WEATHER_BASE_URL}/history.json"
@@ -904,14 +896,9 @@ def check_temperatures():
                 'q': location,
                 'dt': today.strftime('%Y-%m-%d')
             }
-            
             # For demo, we'll use a simplified approach
-            # In production, you'd get actual historical data
             avg_temp = 85  # Example average temperature
-            
-            # Check if current temp is TEMP_THRESHOLD+ degrees hotter than average
             if current_temp >= avg_temp + TEMP_THRESHOLD:
-                # Send email notification
                 send_notification(subscriber.email, location, current_temp, avg_temp)
                 notifications_sent.append({
                     'email': subscriber.email,
@@ -920,15 +907,11 @@ def check_temperatures():
                     'avg_temp': avg_temp,
                     'threshold': TEMP_THRESHOLD
                 })
-                
-                # Send push notification to all devices (only once per location)
                 if location not in [n['location'] for n in notifications_sent]:
                     send_push_notification(location, current_temp, avg_temp)
-                
         except Exception as e:
             print(f"Error processing subscriber {subscriber.email}: {e}")
             continue
-    
     return jsonify({
         'message': f'Processed {len(Subscriber.query.all())} subscribers',
         'notifications_sent': len(notifications_sent),
@@ -1553,16 +1536,15 @@ def test_temperature_alert():
     location = data.get('location', 'New York')
     use_real_data = data.get('use_real_data', False)
     if use_real_data:
-        # Fetch real weather data
-        current_url = f"{WEATHER_BASE_URL}/current.json"
-        current_params = {'key': WEATHER_API_KEY, 'q': location, 'aqi': 'no'}
-        current_response = requests.get(current_url, params=current_params)
-        if current_response.status_code != 200:
-            return jsonify({'success': False, 'error': 'Failed to fetch current weather'}), 500
-        current_data = current_response.json()
-        current_temp = current_data['current']['temp_f']
+        # Fetch forecasted high temperature for today
+        forecast_url = f"{WEATHER_BASE_URL}/forecast.json"
+        forecast_params = {'key': WEATHER_API_KEY, 'q': location, 'days': 1, 'aqi': 'no', 'alerts': 'no'}
+        forecast_response = requests.get(forecast_url, params=forecast_params)
+        if forecast_response.status_code != 200:
+            return jsonify({'success': False, 'error': 'Failed to fetch forecasted weather'}), 500
+        forecast_data = forecast_response.json()
+        current_temp = forecast_data['forecast']['forecastday'][0]['day']['maxtemp_f']
         today = datetime.now()
-        # For demo, use a fixed average or fetch historical if needed
         avg_temp = 85
     else:
         current_temp = data.get('current_temp', 100)
