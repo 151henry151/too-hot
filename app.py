@@ -2095,6 +2095,46 @@ def update_settings():
         'frequency': CHECK_FREQUENCY
     })
 
+@app.route('/api/migrate-db', methods=['POST'])
+def migrate_database():
+    """Run database migration to add missing columns"""
+    try:
+        from sqlalchemy import text
+        
+        # Check if location column exists in Device table
+        result = db.session.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'device' AND column_name = 'location'
+        """))
+        
+        if not result.fetchone():
+            print("Adding 'location' column to Device table...")
+            db.session.execute(text("""
+                ALTER TABLE device 
+                ADD COLUMN location VARCHAR(128) DEFAULT 'auto'
+            """))
+            db.session.commit()
+            print("✅ Successfully added 'location' column to Device table")
+            return jsonify({
+                'success': True,
+                'message': 'Successfully added location column to Device table'
+            })
+        else:
+            print("✅ 'location' column already exists in Device table")
+            return jsonify({
+                'success': True,
+                'message': 'Location column already exists in Device table'
+            })
+            
+    except Exception as e:
+        print(f"❌ Error during migration: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Migration failed: {str(e)}'
+        }), 500
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")
