@@ -1972,19 +1972,35 @@ def time_tracking():
     else:
         print('[DEBUG] Using GITHUB_TOKEN for authenticated GitHub API requests.')
     try:
-        # Fetch commit history from GitHub API (latest 100 commits)
-        api_url = 'https://api.github.com/repos/151henry151/too-hot/commits?per_page=100'
-        resp = requests.get(api_url, headers=github_headers())
-        if resp.status_code != 200:
-            raise Exception(f'GitHub API error: {resp.status_code}')
-        data = resp.json()
+        # Fetch ALL commit history from GitHub API (not just latest 100)
         commits = []
-        for c in data:
-            commit = c['sha']
-            msg = c['commit']['message']
-            date_str = c['commit']['committer']['date']
-            dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
-            commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
+        page = 1
+        per_page = 100
+        
+        while True:
+            api_url = f'https://api.github.com/repos/151henry151/too-hot/commits?per_page={per_page}&page={page}'
+            resp = requests.get(api_url, headers=github_headers())
+            if resp.status_code != 200:
+                raise Exception(f'GitHub API error: {resp.status_code}')
+            data = resp.json()
+            
+            # If no more commits, break
+            if not data:
+                break
+                
+            for c in data:
+                commit = c['sha']
+                msg = c['commit']['message']
+                date_str = c['commit']['committer']['date']
+                dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
+                commits.append({'hash': commit, 'datetime': dt, 'msg': msg})
+            
+            # If we got fewer than per_page commits, we've reached the end
+            if len(data) < per_page:
+                break
+                
+            page += 1
+        
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
         # Filter out time tracking commits (robust substring check)
