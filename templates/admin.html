@@ -246,7 +246,6 @@
                     <div class="flex items-center space-x-2">
                         <label class="mr-2 font-semibold text-sm">Log Type:</label>
                         <select id="log-type" class="border rounded px-2 py-1 text-sm">
-                            <option value="all">All</option>
                             <option value="push">Push Notifications</option>
                             <option value="debug">Debug/Error</option>
                             <option value="mobile">Mobile Logs</option>
@@ -605,8 +604,8 @@
                                 </div>
                             `;
                         }).join('');
-                    } else if (data.push_logs || data.debug_logs) {
-                        logsHtml = '<b>Push Logs:</b><br>' + data.push_logs.map(l => `[${l.timestamp}] <b>${l.status}</b> - ${l.title || ''} (${l.device_type || ''}) ${l.error ? '<span class="text-red-600">' + l.error + '</span>' : ''}`).join('<br>') + '<br><b>Debug Logs:</b><br>' + data.debug_logs.map(l => `[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})`).join('<br>');
+                    } else if (type === 'debug' && data.debug_logs) {
+                        logsHtml = data.debug_logs.map(l => `[${l.timestamp}] <b>${l.source}</b> - ${l.message} (${l.context || ''})`).join('<br>');
                     } else {
                         logsHtml = '<i>No logs found.</i>';
                     }
