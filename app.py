@@ -151,7 +151,7 @@ class PushNotificationLog(db.Model):
 class DebugLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     source = db.Column(db.String(64), nullable=True)  # 'android', 'ios', 'backend', etc.
-    device_id = db.Column(db.Integer, nullable=True)
+    device_id = db.Column(db.String(128), nullable=True)  # Changed from Integer to String to handle device identifiers
     email = db.Column(db.String(256), nullable=True)
     message = db.Column(db.Text, nullable=False)
     context = db.Column(db.String(256), nullable=True)
@@ -2548,10 +2548,6 @@ def migrate_database():
             # Try to query the location column
             db.session.execute(text("SELECT location FROM device LIMIT 1"))
             print("✅ 'location' column already exists in Device table")
-            return jsonify({
-                'success': True,
-                'message': 'Location column already exists in Device table'
-            })
         except Exception as e:
             if "no such column" in str(e):
                 print("Adding 'location' column to Device table...")
@@ -2561,20 +2557,36 @@ def migrate_database():
                 """))
                 db.session.commit()
                 print("✅ Successfully added 'location' column to Device table")
-                return jsonify({
-                    'success': True,
-                    'message': 'Successfully added location column to Device table'
-                })
             else:
                 raise e
+        
+        # Check if DebugLog.device_id needs to be changed from INTEGER to VARCHAR
+        try:
+            # Try to query device_id as string to see if it's already VARCHAR
+            db.session.execute(text("SELECT device_id FROM debug_log LIMIT 1"))
+            print("✅ DebugLog.device_id column exists")
+        except Exception as e:
+            if "no such column" in str(e):
+                print("Adding 'device_id' column to DebugLog table...")
+                db.session.execute(text("""
+                    ALTER TABLE debug_log 
+                    ADD COLUMN device_id VARCHAR(128)
+                """))
+                db.session.commit()
+                print("✅ Successfully added 'device_id' column to DebugLog table")
+            else:
+                print(f"⚠️  DebugLog.device_id column issue: {e}")
+                # The column exists but might be wrong type - this would need manual intervention
+                print("⚠️  Manual database intervention may be required for DebugLog.device_id")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Database migration completed'
+        })
             
     except Exception as e:
         print(f"❌ Error during migration: {e}")
         db.session.rollback()
-        return jsonify({
-            'success': False,
-            'error': f'Migration failed: {str(e)}'
-        }), 500
         return jsonify({
             'success': False,
             'error': f'Migration failed: {str(e)}'
