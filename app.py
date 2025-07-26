@@ -2584,7 +2584,12 @@ def migrate_database():
                 if "InvalidTextRepresentation" in str(test_error):
                     print("❌ DebugLog.device_id is still INTEGER type - attempting to change...")
                     try:
-                        # Try to alter the column type
+                        # First, clear any existing data in device_id column to avoid conversion issues
+                        db.session.execute(text("UPDATE debug_log SET device_id = NULL"))
+                        db.session.commit()
+                        print("✅ Cleared existing device_id data")
+                        
+                        # Now try to alter the column type
                         db.session.execute(text("ALTER TABLE debug_log ALTER COLUMN device_id TYPE VARCHAR(128)"))
                         db.session.commit()
                         print("✅ Successfully changed DebugLog.device_id to VARCHAR")
