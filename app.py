@@ -1892,18 +1892,19 @@ def scheduler_health():
         
         # Calculate next check time based on frequency and last check
         if CHECK_FREQUENCY == 'hourly':
+            now = datetime.now()
             if last_check:
                 # Next check is 1 hour after last check
                 next_check_time = last_check + timedelta(hours=1)
-                # If next check is in the past, calculate the next hour
-                now = datetime.now()
+                # If next check is in the past, calculate the next hour boundary
                 while next_check_time <= now:
                     next_check_time += timedelta(hours=1)
-                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
             else:
-                # No last check, next check is in 1 hour from now
-                next_check_time = datetime.now() + timedelta(hours=1)
-                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+                # No last check, calculate the next hour boundary
+                # Round up to the next hour (e.g., 8:30 PM -> 9:00 PM)
+                next_check_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            
+            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
             active_job = "hourly"
         elif CHECK_FREQUENCY == 'daily':
             if last_check:
