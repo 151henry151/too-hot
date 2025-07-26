@@ -1420,6 +1420,65 @@ def log_scheduler_activity(trigger_type, locations_checked, temperatures_found, 
     except Exception as e:
         print(f"❌ Failed to log scheduler activity: {e}")
 
+def get_cloud_scheduler_job_info(job_name):
+    """Get information about a Cloud Scheduler job including next run time"""
+    try:
+        # Get project ID from environment or metadata
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+        if not project_id:
+            # Try to get from metadata service
+            try:
+                metadata_response = requests.get('http://metadata.google.internal/computeMetadata/v1/project/project-id', 
+                                              headers={'Metadata-Flavor': 'Google'}, timeout=2)
+                if metadata_response.status_code == 200:
+                    project_id = metadata_response.text
+            except:
+                pass
+        
+        if not project_id:
+            print(f"❌ Could not determine Google Cloud project ID for job {job_name}")
+            return None
+        
+        # Get authentication token
+        try:
+            auth_response = requests.get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', 
+                                       headers={'Metadata-Flavor': 'Google'}, timeout=2)
+            if auth_response.status_code != 200:
+                print(f"❌ Failed to get auth token for job {job_name}")
+                return None
+            token = auth_response.json()['access_token']
+        except Exception as e:
+            print(f"❌ Failed to get auth token for job {job_name}: {e}")
+            return None
+        
+        # Query Cloud Scheduler API
+        base_url = f"https://cloudscheduler.googleapis.com/v1/projects/{project_id}/locations/us-central1"
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        job_url = f"{base_url}/jobs/{job_name}"
+        response = requests.get(job_url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            job_data = response.json()
+            return {
+                'name': job_data.get('name'),
+                'state': job_data.get('state'),
+                'schedule': job_data.get('schedule'),
+                'timeZone': job_data.get('timeZone'),
+                'lastAttemptTime': job_data.get('lastAttemptTime'),
+                'nextRunTime': job_data.get('nextRunTime')
+            }
+        else:
+            print(f"❌ Failed to get job info for {job_name}: HTTP {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Error getting Cloud Scheduler job info for {job_name}: {e}")
+        return None
+
 # --- API to get logs (for dashboard AJAX) ---
 @app.route('/admin/logs', methods=['GET'])
 @requires_auth
@@ -1890,41 +1949,82 @@ def scheduler_health():
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
         
-        # Calculate next check time based on frequency and last check
+        # Get actual Cloud Scheduler job information
+        job_name = None
         if CHECK_FREQUENCY == 'hourly':
-            now = datetime.now()
-            if last_check:
-                # Next check is 1 hour after last check
-                next_check_time = last_check + timedelta(hours=1)
-                # If next check is in the past, calculate the next hour boundary
-                while next_check_time <= now:
-                    next_check_time += timedelta(hours=1)
-            else:
-                # No last check, calculate the next hour boundary
-                # Round up to the next hour (e.g., 8:30 PM -> 9:00 PM)
-                next_check_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-            
-            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+            job_name = 'hourly-temperature-check'
             active_job = "hourly"
         elif CHECK_FREQUENCY == 'daily':
-            if last_check:
-                # Next check is 8 AM tomorrow
-                tomorrow = last_check.date() + timedelta(days=1)
-                next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
-                # If next check is in the past, calculate next 8 AM
-                now = datetime.now()
-                while next_check_time <= now:
-                    next_check_time += timedelta(days=1)
-                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
-            else:
-                # No last check, next check is 8 AM tomorrow
-                tomorrow = datetime.now().date() + timedelta(days=1)
-                next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
-                next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
+            job_name = 'daily-temperature-check'
             active_job = "daily"
         else:
-            next_check_info = f"Next check: Unknown"
             active_job = CHECK_FREQUENCY
+        
+        # Query Cloud Scheduler for actual next run time
+        next_check_info = "Next check: Unknown"
+        if job_name:
+            job_info = get_cloud_scheduler_job_info(job_name)
+            if job_info and job_info.get('nextRunTime'):
+                try:
+                    # Parse the nextRunTime (ISO 8601 format)
+                    next_run_time = datetime.fromisoformat(job_info['nextRunTime'].replace('Z', '+00:00'))
+                    # Convert to local time (assuming UTC)
+                    next_run_local = next_run_time.replace(tzinfo=None)
+                    next_check_info = f"Next check: {next_run_local.strftime('%I:%M %p')}"
+                    print(f"🔍 Cloud Scheduler job {job_name} next run: {next_run_local}")
+                except Exception as e:
+                    print(f"❌ Error parsing next run time for {job_name}: {e}")
+                    # Fallback to calculated time
+                    if last_check:
+                        if CHECK_FREQUENCY == 'hourly':
+                            next_check_time = last_check + timedelta(hours=1)
+                            now = datetime.now()
+                            while next_check_time <= now:
+                                next_check_time += timedelta(hours=1)
+                            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+                        elif CHECK_FREQUENCY == 'daily':
+                            tomorrow = last_check.date() + timedelta(days=1)
+                            next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                            now = datetime.now()
+                            while next_check_time <= now:
+                                next_check_time += timedelta(days=1)
+                            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
+                    else:
+                        # No last check, use current time + 1 hour for hourly
+                        if CHECK_FREQUENCY == 'hourly':
+                            now = datetime.now()
+                            next_check_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+                        elif CHECK_FREQUENCY == 'daily':
+                            tomorrow = datetime.now().date() + timedelta(days=1)
+                            next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                            next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
+            else:
+                print(f"❌ Could not get Cloud Scheduler job info for {job_name}")
+                # Fallback to calculated time (same logic as above)
+                if last_check:
+                    if CHECK_FREQUENCY == 'hourly':
+                        next_check_time = last_check + timedelta(hours=1)
+                        now = datetime.now()
+                        while next_check_time <= now:
+                            next_check_time += timedelta(hours=1)
+                        next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+                    elif CHECK_FREQUENCY == 'daily':
+                        tomorrow = last_check.date() + timedelta(days=1)
+                        next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                        now = datetime.now()
+                        while next_check_time <= now:
+                            next_check_time += timedelta(days=1)
+                        next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
+                else:
+                    if CHECK_FREQUENCY == 'hourly':
+                        now = datetime.now()
+                        next_check_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                        next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')}"
+                    elif CHECK_FREQUENCY == 'daily':
+                        tomorrow = datetime.now().date() + timedelta(days=1)
+                        next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
+                        next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
         
         return jsonify({
             'status': 'healthy',
