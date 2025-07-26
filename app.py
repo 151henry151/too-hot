@@ -2566,30 +2566,31 @@ def migrate_database():
             db.session.execute(text("SELECT device_id FROM debug_log LIMIT 1"))
             print("✅ DebugLog.device_id column exists")
             
-            # Test if we can insert a string into device_id
+            # Check if device_id column accepts strings by trying a direct SQL test
             try:
-                test_log = DebugLog(
-                    source='test',
-                    device_id='TEST_MIGRATION',
-                    message='Testing device_id column type',
-                    context='Migration test'
-                )
-                db.session.add(test_log)
+                # Try to insert a test record directly with SQL to avoid SQLAlchemy session issues
+                db.session.execute(text("""
+                    INSERT INTO debug_log (source, device_id, message, context, timestamp) 
+                    VALUES ('test', 'TEST_MIGRATION', 'Testing device_id column type', 'Migration test', NOW())
+                """))
                 db.session.commit()
                 print("✅ DebugLog.device_id column accepts strings - migration successful")
                 # Clean up test log
-                db.session.delete(test_log)
+                db.session.execute(text("DELETE FROM debug_log WHERE source = 'test' AND device_id = 'TEST_MIGRATION'"))
                 db.session.commit()
             except Exception as test_error:
                 if "InvalidTextRepresentation" in str(test_error):
                     print("❌ DebugLog.device_id is still INTEGER type - attempting to change...")
                     try:
-                        # First, clear any existing data in device_id column to avoid conversion issues
+                        # Clear existing data and alter column type in a fresh transaction
+                        db.session.rollback()  # Ensure clean state
+                        
+                        # First, clear any existing data in device_id column
                         db.session.execute(text("UPDATE debug_log SET device_id = NULL"))
                         db.session.commit()
                         print("✅ Cleared existing device_id data")
                         
-                        # Now try to alter the column type
+                        # Now alter the column type
                         db.session.execute(text("ALTER TABLE debug_log ALTER COLUMN device_id TYPE VARCHAR(128)"))
                         db.session.commit()
                         print("✅ Successfully changed DebugLog.device_id to VARCHAR")
