@@ -1432,21 +1432,28 @@ def get_cloud_scheduler_job_info(job_name):
                                               headers={'Metadata-Flavor': 'Google'}, timeout=2)
                 if metadata_response.status_code == 200:
                     project_id = metadata_response.text
-            except:
+                    print(f"🔍 Got project ID from metadata: {project_id}")
+                else:
+                    print(f"❌ Metadata service returned {metadata_response.status_code}")
+            except Exception as e:
+                print(f"❌ Error getting project ID from metadata: {e}")
                 pass
         
         if not project_id:
             print(f"❌ Could not determine Google Cloud project ID for job {job_name}")
             return None
         
+        print(f"🔍 Using project ID: {project_id}")
+        
         # Get authentication token
         try:
             auth_response = requests.get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', 
                                        headers={'Metadata-Flavor': 'Google'}, timeout=2)
             if auth_response.status_code != 200:
-                print(f"❌ Failed to get auth token for job {job_name}")
+                print(f"❌ Failed to get auth token for job {job_name}: HTTP {auth_response.status_code}")
                 return None
             token = auth_response.json()['access_token']
+            print(f"🔍 Got auth token successfully")
         except Exception as e:
             print(f"❌ Failed to get auth token for job {job_name}: {e}")
             return None
@@ -1459,10 +1466,16 @@ def get_cloud_scheduler_job_info(job_name):
         }
         
         job_url = f"{base_url}/jobs/{job_name}"
+        print(f"🔍 Querying Cloud Scheduler API: {job_url}")
         response = requests.get(job_url, headers=headers, timeout=10)
+        
+        print(f"🔍 Cloud Scheduler API response: HTTP {response.status_code}")
+        if response.status_code != 200:
+            print(f"🔍 Response body: {response.text}")
         
         if response.status_code == 200:
             job_data = response.json()
+            print(f"🔍 Job data: {job_data}")
             return {
                 'name': job_data.get('name'),
                 'state': job_data.get('state'),
