@@ -2565,6 +2565,35 @@ def migrate_database():
             # Try to query device_id as string to see if it's already VARCHAR
             db.session.execute(text("SELECT device_id FROM debug_log LIMIT 1"))
             print("✅ DebugLog.device_id column exists")
+            
+            # Test if we can insert a string into device_id
+            try:
+                test_log = DebugLog(
+                    source='test',
+                    device_id='TEST_MIGRATION',
+                    message='Testing device_id column type',
+                    context='Migration test'
+                )
+                db.session.add(test_log)
+                db.session.commit()
+                print("✅ DebugLog.device_id column accepts strings - migration successful")
+                # Clean up test log
+                db.session.delete(test_log)
+                db.session.commit()
+            except Exception as test_error:
+                if "InvalidTextRepresentation" in str(test_error):
+                    print("❌ DebugLog.device_id is still INTEGER type - attempting to change...")
+                    try:
+                        # Try to alter the column type
+                        db.session.execute(text("ALTER TABLE debug_log ALTER COLUMN device_id TYPE VARCHAR(128)"))
+                        db.session.commit()
+                        print("✅ Successfully changed DebugLog.device_id to VARCHAR")
+                    except Exception as alter_error:
+                        print(f"❌ Could not alter column type: {alter_error}")
+                        print("⚠️  Manual database intervention required")
+                else:
+                    print(f"❌ Unexpected error testing device_id: {test_error}")
+                    
         except Exception as e:
             if "no such column" in str(e):
                 print("Adding 'device_id' column to DebugLog table...")
@@ -2576,7 +2605,6 @@ def migrate_database():
                 print("✅ Successfully added 'device_id' column to DebugLog table")
             else:
                 print(f"⚠️  DebugLog.device_id column issue: {e}")
-                # The column exists but might be wrong type - this would need manual intervention
                 print("⚠️  Manual database intervention may be required for DebugLog.device_id")
         
         return jsonify({
