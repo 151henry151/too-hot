@@ -1328,6 +1328,13 @@ def admin_dashboard():
     trigger_log = load_json_file('trigger_log.json', default=[])
     expo_apk_url, expo_apk_error = get_latest_expo_apk_url()
     expo_ios_url, expo_ios_error = get_latest_expo_ios_url()
+    
+    # Calculate total temperature alerts sent
+    total_alerts = db.session.query(db.func.sum(SchedulerLog.alerts_triggered)).filter(
+        SchedulerLog.status == 'success',
+        SchedulerLog.alerts_triggered > 0
+    ).scalar() or 0
+    
     return render_template('admin.html',
         email_subs=email_subs,
         notif_log=notif_log,
@@ -1335,7 +1342,8 @@ def admin_dashboard():
         expo_apk_url=expo_apk_url,
         expo_apk_error=expo_apk_error,
         expo_ios_url=expo_ios_url,
-        expo_ios_error=expo_ios_error)
+        expo_ios_error=expo_ios_error,
+        total_alerts=total_alerts)
 
 # --- Resend Welcome Email ---
 @app.route('/admin/resend-welcome', methods=['POST'])
@@ -2366,12 +2374,40 @@ def update_cloud_scheduler_jobs(frequency):
         
         # Use Cloud Scheduler REST API instead of gcloud
         import requests
-        from google.auth import default
-        from google.auth.transport.requests import Request
-        
-        # Get credentials
-        credentials, _ = default()
-        credentials.refresh(Request())
+        try:
+            from google.auth import default
+            from google.auth.transport.requests import Request
+            
+            # Get credentials
+            credentials, _ = default()
+            credentials.refresh(Request())
+            token = credentials.token
+        except ImportError:
+            error_msg = "google-auth module not available - cannot update Cloud Scheduler jobs"
+            print(f"❌ {error_msg}")
+            log_scheduler_activity(
+                trigger_type='settings_update',
+                locations_checked=[],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='error',
+                error_message=f'{error_msg} - Frequency: {frequency}'
+            )
+            return False
+        except Exception as e:
+            error_msg = f"Failed to get Google Cloud credentials: {e}"
+            print(f"❌ {error_msg}")
+            log_scheduler_activity(
+                trigger_type='settings_update',
+                locations_checked=[],
+                temperatures_found={},
+                alerts_triggered=0,
+                threshold_used=TEMP_THRESHOLD,
+                status='error',
+                error_message=f'{error_msg} - Frequency: {frequency}'
+            )
+            return False
         
         # Base URL for Cloud Scheduler API
         base_url = f"https://cloudscheduler.googleapis.com/v1/projects/{project_id}/locations/us-central1/jobs"
