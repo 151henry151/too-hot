@@ -6,10 +6,15 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release"
+      }
     },
     "production": {
       "autoIncrement": true

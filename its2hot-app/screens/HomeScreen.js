@@ -597,9 +597,10 @@ const styles = StyleSheet.create({
     width: '30%',
     alignItems: 'center',
     marginBottom: 16,
+    minWidth: 80,
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#1f2937',
     marginTop: 8,

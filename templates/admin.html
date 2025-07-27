@@ -20,8 +20,7 @@
                 <p class="text-gray-600">Manage push notifications and view system status</p>
             </div>
 
-            <!-- Expo Android Build QR Code Section -->
-            {% if expo_apk_url and expo_apk_url.startswith('http') %}
+            <!-- Android Build QR Code Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
               <h2 class="text-2xl font-bold text-gray-800 mb-2">
                 <i class="fab fa-android mr-2 text-green-600"></i>
@@ -29,35 +28,22 @@
               </h2>
               <p class="text-gray-600 mb-4">Scan to install the latest preview build on your device:</p>
               <div class="mb-4">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_apk_url|urlencode }}" 
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https%3A//expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" 
                      alt="Expo Android Build QR Code" 
                      class="qr-code-image" 
                      style="width:200px;height:200px;"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                 <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666;">
                   QR Code unavailable<br>
-                  <a href="{{ expo_apk_url }}" target="_blank" class="text-blue-600 underline">Click to download</a>
+                  <a href="https://expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" target="_blank" class="text-blue-600 underline">Click to download</a>
                 </div>
               </div>
-              <a href="{{ expo_apk_url }}" target="_blank" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors font-semibold">
+              <a href="https://expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" target="_blank" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors font-semibold">
                 <i class="fas fa-download mr-2"></i>Download APK
               </a>
-              <p class="text-xs text-gray-500 mt-2">URL: {{ expo_apk_url[:50] }}...</p>
+              <p class="text-xs text-gray-500 mt-2">URL: https://expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6</p>
             </div>
-            {% else %}
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
-              <h2 class="text-2xl font-bold text-gray-800 mb-2">
-                <i class="fab fa-android mr-2 text-green-600"></i>
-                Latest Android App Build
-              </h2>
-              {% if expo_apk_error %}
-                <p class="text-red-600 font-semibold mb-2">{{ expo_apk_error }}</p>
-              {% endif %}
-              <p class="text-gray-600">No Android build available yet.</p>
-              <p class="text-sm text-gray-500 mt-2">Make sure EXPO_TOKEN is set in your environment variables.</p>
-            </div>
-            {% endif %}
-            <!-- End Expo Android Build QR Code Section -->
+            <!-- End Android Build QR Code Section -->
 
             <!-- Expo iOS Build QR Code Section -->
             {% if expo_ios_url and expo_ios_url.startswith('http') %}

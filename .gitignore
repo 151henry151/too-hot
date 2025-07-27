@@ -82,4 +82,10 @@ yarn-error.*
 # Expo token (sensitive)
 expo_token.txt
 
+# Database files
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
 app-example 
