@@ -471,6 +471,11 @@ def index():
     """Serve the main web interface"""
     return render_template('index.html')
 
+@app.route('/privacy-policy')
+def privacy_policy():
+    """Serve the privacy policy page"""
+    return render_template('privacy_policy.html')
+
 @app.route('/shop')
 def shop():
     # Get actual product variants from Printful
