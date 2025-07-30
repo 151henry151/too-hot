@@ -14,6 +14,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLogger, logError } from '../hooks/useLogger';
 import PaymentService from '../services/PaymentService';
+import { 
+  ACCESSIBILITY, 
+  createButtonAccessibility, 
+  createTextAccessibility, 
+  createImageAccessibility,
+  createAccessibilityProps
+} from '../utils/accessibility';
 
 const { width } = Dimensions.get('window');
 
@@ -174,186 +181,299 @@ export default function ShopScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      {...createAccessibilityProps(
+        'Shop screen for purchasing IT\'S TOO HOT! t-shirts',
+        'Scroll to view all product options and purchase details'
+      )}
+    >
       {/* Hero Section */}
       <View style={styles.heroSection}>
-        <Text style={styles.heroTitle}>Get Your "IT'S TOO HOT!" T-Shirt</Text>
-        <Text style={styles.heroSubtitle}>Wear the shirt when you get the alert.</Text>
+        <Text 
+          style={styles.heroTitle}
+          {...createTextAccessibility('Get Your IT\'S TOO HOT! T-Shirt', ACCESSIBILITY.ROLES.HEADER)}
+        >
+          Get Your "IT'S TOO HOT!" T-Shirt
+        </Text>
+        <Text 
+          style={styles.heroSubtitle}
+          {...createTextAccessibility('Wear the shirt when you get the alert to raise climate awareness')}
+        >
+          Wear the shirt when you get the alert.
+        </Text>
       </View>
 
-      {/* Product Section */}
-      <View style={styles.productCard}>
-        <View style={styles.productGrid}>
-          {/* Product Image */}
-          <View style={styles.imageSection}>
-            <Image
-              source={selectedView === 'front' ? currentColor.front : currentColor.back}
-              style={styles.productImage}
-              resizeMode="contain"
-              key={`${selectedDesign}-${selectedColor}-${selectedView}`}
-            />
-            
-            {/* View Toggle */}
-            <View style={styles.viewToggle}>
-              <TouchableOpacity
-                style={[styles.viewButton, selectedView === 'front' && styles.viewButtonActive]}
-                onPress={() => setSelectedView('front')}
-              >
-                <Text style={[styles.viewButtonText, selectedView === 'front' && styles.viewButtonTextActive]}>
-                  Front
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.viewButton, selectedView === 'back' && styles.viewButtonActive]}
-                onPress={() => setSelectedView('back')}
-              >
-                <Text style={[styles.viewButtonText, selectedView === 'back' && styles.viewButtonTextActive]}>
-                  Back
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Product Details */}
-          <View style={styles.detailsSection}>
-            <Text style={styles.productName}>{currentProduct.name}</Text>
-            <Text style={styles.productDescription}>{currentProduct.description}</Text>
-
-            {/* Design Selection */}
-            <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Design</Text>
-              <View style={styles.designButtons}>
-                <TouchableOpacity
-                  style={[styles.designButton, selectedDesign === 'tshirt' && styles.designButtonActive]}
-                  onPress={() => {
-                    setSelectedDesign('tshirt');
-                    setSelectedColor('black');
-                  }}
-                >
-                  <Text style={[styles.designButtonText, selectedDesign === 'tshirt' && styles.designButtonTextActive]}>
-                    Dark Design
-                  </Text>
-                  <Text style={styles.designButtonSubtext}>White text on dark</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.designButton, selectedDesign === 'tshirt_light' && styles.designButtonActive]}
-                  onPress={() => {
-                    setSelectedDesign('tshirt_light');
-                    setSelectedColor('white');
-                  }}
-                >
-                  <Text style={[styles.designButtonText, selectedDesign === 'tshirt_light' && styles.designButtonTextActive]}>
-                    Light Design
-                  </Text>
-                  <Text style={styles.designButtonSubtext}>Black text on light</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Color Selection */}
-            <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Color</Text>
-              <View style={styles.colorGrid}>
-                {Object.keys(currentProduct.colors).map((colorKey) => (
-                  <TouchableOpacity
-                    key={colorKey}
-                    style={[styles.colorButton, selectedColor === colorKey && styles.colorButtonActive]}
-                    onPress={() => setSelectedColor(colorKey)}
-                  >
-                    <Text style={[styles.colorButtonText, selectedColor === colorKey && styles.colorButtonTextActive]}>
-                      {currentProduct.colors[colorKey].name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Features */}
-            <View style={styles.featuresList}>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text style={styles.featureText}>100% Cotton</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text style={styles.featureText}>Multiple sizes available</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text style={styles.featureText}>Fast shipping</Text>
-              </View>
-            </View>
-
-            {/* Price */}
-            <Text style={styles.price}>${currentProduct.price.toFixed(2)}</Text>
-
-            {/* Size Selection */}
-            <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Size</Text>
-              <View style={styles.sizeGrid}>
-                {sizes.map((size) => (
-                  <TouchableOpacity
-                    key={size.value}
-                    style={[styles.sizeButton, selectedSize === size.value && styles.sizeButtonActive]}
-                    onPress={() => setSelectedSize(size.value)}
-                  >
-                    <Text style={[styles.sizeButtonText, selectedSize === size.value && styles.sizeButtonTextActive]}>
-                      {size.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Quantity */}
-            <View style={styles.optionSection}>
-              <Text style={styles.optionLabel}>Quantity</Text>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity style={styles.quantityButton} onPress={decreaseQuantity}>
-                  <Ionicons name="remove" size={20} color="#6b7280" />
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity style={styles.quantityButton} onPress={increaseQuantity}>
-                  <Ionicons name="add" size={20} color="#6b7280" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Buy Button */}
-            <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
-              <Ionicons name="logo-paypal" size={24} color="white" />
-              <Text style={styles.buyButtonText}>Buy with PayPal</Text>
+      {/* Product Display */}
+      <View style={styles.productSection}>
+        <View style={styles.productImageContainer}>
+          <Image
+            source={selectedView === 'front' ? currentColor.front : currentColor.back}
+            style={styles.productImage}
+            resizeMode="contain"
+            {...createImageAccessibility(`${selectedView} view of ${currentColor.name} ${currentProduct.name}`)}
+          />
+          
+          {/* View Toggle Buttons */}
+          <View style={styles.viewToggleContainer}>
+            <TouchableOpacity
+              style={[styles.viewButton, selectedView === 'front' && styles.viewButtonActive]}
+              onPress={() => setSelectedView('front')}
+              {...createButtonAccessibility(
+                ACCESSIBILITY.LABELS.VIEW_FRONT,
+                ACCESSIBILITY.HINTS.VIEW_FRONT,
+                selectedView === 'front'
+              )}
+            >
+              <Text style={[styles.viewButtonText, selectedView === 'front' && styles.viewButtonTextActive]}>
+                Front
+              </Text>
             </TouchableOpacity>
-
-            <Text style={styles.secureText}>Secure payment powered by PayPal</Text>
+            <TouchableOpacity
+              style={[styles.viewButton, selectedView === 'back' && styles.viewButtonActive]}
+              onPress={() => setSelectedView('back')}
+              {...createButtonAccessibility(
+                ACCESSIBILITY.LABELS.VIEW_BACK,
+                ACCESSIBILITY.HINTS.VIEW_BACK,
+                selectedView === 'back'
+              )}
+            >
+              <Text style={[styles.viewButtonText, selectedView === 'back' && styles.viewButtonTextActive]}>
+                Back
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      {/* Features Section */}
-      <View style={styles.featuresSection}>
-        <View style={styles.featureCard}>
-          <Ionicons name="rocket" size={48} color="#3b82f6" />
-          <Text style={styles.featureCardTitle}>Fast Shipping</Text>
-          <Text style={styles.featureCardText}>
-            Orders ship within 2-3 business days. Free shipping on orders over $50.
+        {/* Product Details */}
+        <View style={styles.detailsSection}>
+          <Text 
+            style={styles.productName}
+            {...createTextAccessibility(currentProduct.name, ACCESSIBILITY.ROLES.HEADER)}
+          >
+            {currentProduct.name}
           </Text>
-        </View>
+          <Text 
+            style={styles.productDescription}
+            {...createTextAccessibility(currentProduct.description)}
+          >
+            {currentProduct.description}
+          </Text>
 
-        <View style={styles.featureCard}>
-          <Ionicons name="refresh" size={48} color="#10b981" />
-          <Text style={styles.featureCardTitle}>Easy Returns</Text>
-          <Text style={styles.featureCardText}>
-            30-day return policy. If you're not satisfied, we'll make it right.
-          </Text>
-        </View>
+          {/* Design Selection */}
+          <View style={styles.optionSection}>
+            <Text 
+              style={styles.optionLabel}
+              {...createTextAccessibility('Design Selection', ACCESSIBILITY.ROLES.HEADER)}
+            >
+              Design
+            </Text>
+            <View style={styles.designButtons}>
+              <TouchableOpacity
+                style={[styles.designButton, selectedDesign === 'tshirt' && styles.designButtonActive]}
+                onPress={() => {
+                  setSelectedDesign('tshirt');
+                  setSelectedColor('black');
+                }}
+                {...createButtonAccessibility(
+                  'Dark Design - White text on dark background',
+                  ACCESSIBILITY.HINTS.DESIGN_SELECTION,
+                  selectedDesign === 'tshirt'
+                )}
+              >
+                <Text style={[styles.designButtonText, selectedDesign === 'tshirt' && styles.designButtonTextActive]}>
+                  Dark Design
+                </Text>
+                <Text style={styles.designButtonSubtext}>White text on dark</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.designButton, selectedDesign === 'tshirt_light' && styles.designButtonActive]}
+                onPress={() => {
+                  setSelectedDesign('tshirt_light');
+                  setSelectedColor('white');
+                }}
+                {...createButtonAccessibility(
+                  'Light Design - Black text on light background',
+                  ACCESSIBILITY.HINTS.DESIGN_SELECTION,
+                  selectedDesign === 'tshirt_light'
+                )}
+              >
+                <Text style={[styles.designButtonText, selectedDesign === 'tshirt_light' && styles.designButtonTextActive]}>
+                  Light Design
+                </Text>
+                <Text style={styles.designButtonSubtext}>Black text on light</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        <View style={styles.featureCard}>
-          <Ionicons name="heart" size={48} color="#8b5cf6" />
-          <Text style={styles.featureCardTitle}>Climate Action</Text>
-          <Text style={styles.featureCardText}>
-            Every purchase supports climate awareness and activism efforts.
+          {/* Color Selection */}
+          <View style={styles.optionSection}>
+            <Text 
+              style={styles.optionLabel}
+              {...createTextAccessibility('Color Selection', ACCESSIBILITY.ROLES.HEADER)}
+            >
+              Color
+            </Text>
+            <View style={styles.colorGrid}>
+              {Object.keys(currentProduct.colors).map((colorKey) => (
+                <TouchableOpacity
+                  key={colorKey}
+                  style={[styles.colorButton, selectedColor === colorKey && styles.colorButtonActive]}
+                  onPress={() => setSelectedColor(colorKey)}
+                  {...createButtonAccessibility(
+                    `${currentProduct.colors[colorKey].name} color`,
+                    ACCESSIBILITY.HINTS.COLOR_SELECTION,
+                    selectedColor === colorKey
+                  )}
+                >
+                  <Text style={[styles.colorButtonText, selectedColor === colorKey && styles.colorButtonTextActive]}>
+                    {currentProduct.colors[colorKey].name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Features */}
+          <View style={styles.featuresList}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text 
+                style={styles.featureText}
+                {...createTextAccessibility('100% Cotton material')}
+              >
+                100% Cotton
+              </Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text 
+                style={styles.featureText}
+                {...createTextAccessibility('Multiple sizes available')}
+              >
+                Multiple sizes available
+              </Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text 
+                style={styles.featureText}
+                {...createTextAccessibility('Fast shipping')}
+              >
+                Fast shipping
+              </Text>
+            </View>
+          </View>
+
+          {/* Price */}
+          <Text 
+            style={styles.price}
+            {...createTextAccessibility(`Price: $${currentProduct.price.toFixed(2)}`)}
+          >
+            ${currentProduct.price.toFixed(2)}
           </Text>
+
+          {/* Size Selection */}
+          <View style={styles.optionSection}>
+            <Text 
+              style={styles.optionLabel}
+              {...createTextAccessibility('Size Selection', ACCESSIBILITY.ROLES.HEADER)}
+            >
+              Size
+            </Text>
+            <View style={styles.sizeGrid}>
+              {sizes.map((size) => (
+                <TouchableOpacity
+                  key={size.value}
+                  style={[styles.sizeButton, selectedSize === size.value && styles.sizeButtonActive]}
+                  onPress={() => setSelectedSize(size.value)}
+                  {...createButtonAccessibility(
+                    `${size.label} size`,
+                    ACCESSIBILITY.HINTS.SIZE_SELECTION,
+                    selectedSize === size.value
+                  )}
+                >
+                  <Text style={[styles.sizeButtonText, selectedSize === size.value && styles.sizeButtonTextActive]}>
+                    {size.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Quantity Selection */}
+          <View style={styles.optionSection}>
+            <Text 
+              style={styles.optionLabel}
+              {...createTextAccessibility('Quantity Selection', ACCESSIBILITY.ROLES.HEADER)}
+            >
+              Quantity
+            </Text>
+            <View style={styles.quantityContainer}>
+              <TouchableOpacity
+                style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
+                onPress={decreaseQuantity}
+                disabled={quantity <= 1}
+                {...createButtonAccessibility(
+                  ACCESSIBILITY.LABELS.QUANTITY_DECREASE,
+                  ACCESSIBILITY.HINTS.QUANTITY_DECREASE,
+                  quantity <= 1
+                )}
+              >
+                <Ionicons name="remove" size={20} color={quantity <= 1 ? "#ccc" : "#000"} />
+              </TouchableOpacity>
+              
+              <Text 
+                style={styles.quantityText}
+                {...createTextAccessibility(`${quantity} selected`, ACCESSIBILITY.ROLES.TEXT)}
+              >
+                {quantity}
+              </Text>
+              
+              <TouchableOpacity
+                style={[styles.quantityButton, quantity >= 10 && styles.quantityButtonDisabled]}
+                onPress={increaseQuantity}
+                disabled={quantity >= 10}
+                {...createButtonAccessibility(
+                  ACCESSIBILITY.LABELS.QUANTITY_INCREASE,
+                  ACCESSIBILITY.HINTS.QUANTITY_INCREASE,
+                  quantity >= 10
+                )}
+              >
+                <Ionicons name="add" size={20} color={quantity >= 10 ? "#ccc" : "#000"} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Total */}
+          <View style={styles.totalSection}>
+            <Text 
+              style={styles.totalLabel}
+              {...createTextAccessibility('Total price')}
+            >
+              Total:
+            </Text>
+            <Text 
+              style={styles.totalAmount}
+              {...createTextAccessibility(`$${(currentProduct.price * quantity).toFixed(2)}`)}
+            >
+              ${(currentProduct.price * quantity).toFixed(2)}
+            </Text>
+          </View>
+
+          {/* Buy Button */}
+          <TouchableOpacity
+            style={styles.buyButton}
+            onPress={handleBuyPress}
+            {...createButtonAccessibility(
+              ACCESSIBILITY.LABELS.BUY_BUTTON,
+              ACCESSIBILITY.HINTS.BUY_BUTTON
+            )}
+          >
+            <Ionicons name="cart" size={20} color="white" />
+            <Text style={styles.buyButtonText}>Buy Now</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -364,6 +484,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  contentContainer: {
+    paddingBottom: 20, // Add some padding at the bottom for the buy button
   },
   heroSection: {
     backgroundColor: 'white',
@@ -384,7 +507,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
-  productCard: {
+  productSection: {
     backgroundColor: 'white',
     marginHorizontal: 20,
     marginBottom: 20,
@@ -399,10 +522,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  productGrid: {
-    flexDirection: 'column',
-  },
-  imageSection: {
+  productImageContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
@@ -411,7 +531,7 @@ const styles = StyleSheet.create({
     height: 300,
     marginBottom: 16,
   },
-  viewToggle: {
+  viewToggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#f3f4f6',
     borderRadius: 8,
@@ -555,7 +675,7 @@ const styles = StyleSheet.create({
   sizeButtonTextActive: {
     color: 'white',
   },
-  quantityControls: {
+  quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
@@ -568,12 +688,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  quantityButtonDisabled: {
+    opacity: 0.5,
+  },
   quantityText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
     minWidth: 40,
     textAlign: 'center',
+  },
+  totalSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  totalAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
   },
   buyButton: {
     backgroundColor: '#3b82f6',

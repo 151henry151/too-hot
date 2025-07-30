@@ -16,10 +16,23 @@
         "NSLocationWhenInUseUsageDescription": "This app uses location to provide accurate temperature alerts for your area.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSApplePayUsageDescription": "This app uses Apple Pay to process t-shirt purchases securely.",
-        "PKPaymentNetworks": ["visa", "mastercard", "amex", "discover"]
+        "PKPaymentNetworks": ["visa", "mastercard", "amex", "discover"],
+        "UIBackgroundModes": ["remote-notification"],
+        "UIRequiresFullScreen": false,
+        "UIStatusBarStyle": "default",
+        "UIViewControllerBasedStatusBarAppearance": true
       },
       "entitlements": {
         "com.apple.developer.in-app-payments": ["merchant.com.romp.its2hot"]
+      },
+      "accessibility": {
+        "isVoiceOverEnabled": true,
+        "isSwitchControlEnabled": true,
+        "isReduceMotionEnabled": true,
+        "isReduceTransparencyEnabled": true,
+        "isIncreaseContrastEnabled": true,
+        "isBoldTextEnabled": true,
+        "isLargerTextEnabled": true
       }
     },
     "android": {
@@ -53,7 +66,14 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ]
+      ],
+      "accessibility": {
+        "isAccessibilityEnabled": true,
+        "isTalkBackEnabled": true,
+        "isSwitchAccessEnabled": true,
+        "isHighContrastEnabled": true,
+        "isLargeTextEnabled": true
+      }
     },
     "web": {
       "bundler": "metro",
