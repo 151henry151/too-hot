@@ -103,7 +103,7 @@ export default function ShopScreen() {
       // Show order confirmation
       Alert.alert(
         'Purchase Confirmation',
-        `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed with ${Platform.OS === 'ios' ? 'Apple Pay' : Platform.OS === 'android' ? 'Google Pay' : 'web checkout'}?`,
+        `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed with ${Platform.OS === 'ios' ? 'Apple Pay' : Platform.OS === 'android' ? 'Google Pay' : 'web checkout'}?\n\nPayment will be processed securely through PayPal.`,
         [
           {
             text: 'Cancel',

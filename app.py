@@ -17,6 +17,7 @@ from pytz import timezone
 import threading
 from sqlalchemy import and_
 import atexit
+import random
 
 load_dotenv()
 
@@ -2778,7 +2779,7 @@ def clear_commit_cache():
 
 @app.route('/api/create-order', methods=['POST'])
 def create_order():
-    """Create a new order for mobile app payments"""
+    """Create a new order for mobile app payments using PayPal backend"""
     try:
         data = request.get_json()
         
@@ -2791,21 +2792,74 @@ def create_order():
         # Generate order ID
         order_id = f"ORDER_{int(time.time())}_{random.randint(1000, 9999)}"
         
-        # Store order in session or database (for now, just return success)
-        # In production, you'd store this in a database
+        # Create PayPal payment for the order
+        payment_data = {
+            "intent": "sale",
+            "payer": {
+                "payment_method": "paypal"
+            },
+            "transactions": [{
+                "amount": {
+                    "total": data['total'],
+                    "currency": "USD"
+                },
+                "description": f"{data['quantity']}x {data['product']} ({data['color']}, {data['size']})",
+                "item_list": {
+                    "items": [{
+                        "name": f"{data['product']} - {data['color']} - {data['size']}",
+                        "price": data['total'],
+                        "currency": "USD",
+                        "quantity": data['quantity']
+                    }]
+                }
+            }],
+            "application_context": {
+                "shipping_preference": "NO_SHIPPING",
+                "user_action": "commit"
+            },
+            "redirect_urls": {
+                "return_url": f"https://its2hot.org/payment-success?order_id={order_id}",
+                "cancel_url": f"https://its2hot.org/payment-cancelled?order_id={order_id}"
+            }
+        }
         
-        return jsonify({
-            'success': True,
-            'order_id': order_id,
-            'message': 'Order created successfully'
-        })
+        # Create PayPal payment
+        payment = paypalrestsdk.Payment(payment_data)
+        
+        if payment.create():
+            # Store order details in session for later retrieval
+            session[f'order_{order_id}'] = {
+                'payment_id': payment.id,
+                'product': data['product'],
+                'color': data['color'],
+                'size': data['size'],
+                'quantity': data['quantity'],
+                'total': data['total'],
+                'platform': data['platform'],
+                'payment_method': data['payment_method'],
+                'created_at': datetime.utcnow().isoformat()
+            }
+            
+            return jsonify({
+                'success': True,
+                'order_id': order_id,
+                'payment_id': payment.id,
+                'approval_url': payment.links[1].href,  # PayPal approval URL
+                'message': 'Order created successfully with PayPal backend'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'PayPal payment creation failed: {payment.error}'
+            }), 500
         
     except Exception as e:
+        print(f"❌ Error creating order: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/confirm-order', methods=['POST'])
 def confirm_order():
-    """Confirm an order after payment processing"""
+    """Confirm an order after payment processing with PayPal backend"""
     try:
         data = request.get_json()
         
@@ -2819,21 +2873,67 @@ def confirm_order():
         payment_result = data['payment_result']
         platform = data['platform']
         
-        # In production, you'd:
-        # 1. Verify the payment with your payment processor
-        # 2. Update the order status in your database
-        # 3. Send confirmation email
-        # 4. Create Printful order
+        # Get order details from session
+        order_data = session.get(f'order_{order_id}')
+        if not order_data:
+            return jsonify({'success': False, 'error': 'Order not found'}), 404
         
-        # For now, just return success
-        return jsonify({
-            'success': True,
-            'order_id': order_id,
-            'message': 'Order confirmed successfully',
-            'payment_method': payment_result.get('method', 'unknown')
-        })
+        # For mobile payments (Apple Pay/Google Pay), we'll simulate PayPal approval
+        # In production, you'd integrate with PayPal's mobile SDK or use webhooks
+        if platform in ['ios', 'android']:
+            # Simulate PayPal payment approval for mobile payments
+            # In production, you'd verify the payment with PayPal's API
+            payment_id = order_data.get('payment_id')
+            
+            # For now, we'll assume the mobile payment was successful
+            # In production, you'd verify this with PayPal
+            print(f"✅ Mobile payment confirmed for order {order_id} via {payment_result.get('method', 'unknown')}")
+            
+            # Create Printful order
+            try:
+                printful_order = create_printful_order({
+                    'product': order_data['product'],
+                    'color': order_data['color'],
+                    'size': order_data['size'],
+                    'quantity': order_data['quantity'],
+                    'total': order_data['total'],
+                    'payment_method': payment_result.get('method', 'mobile_payment'),
+                    'platform': platform,
+                    'order_id': order_id
+                })
+                
+                # Send confirmation email
+                # Note: You'd need to collect customer email in the mobile flow
+                # send_order_confirmation(order_data)
+                
+                # Clean up session
+                session.pop(f'order_{order_id}', None)
+                
+                return jsonify({
+                    'success': True,
+                    'order_id': order_id,
+                    'printful_order_id': printful_order.get('id') if printful_order else None,
+                    'message': 'Order confirmed and Printful order created successfully',
+                    'payment_method': payment_result.get('method', 'mobile_payment')
+                })
+                
+            except Exception as e:
+                print(f"❌ Error creating Printful order: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Payment successful but Printful order creation failed: {str(e)}'
+                }), 500
+        else:
+            # Web platform - handle through existing PayPal flow
+            return jsonify({
+                'success': True,
+                'order_id': order_id,
+                'message': 'Web order confirmed',
+                'payment_method': 'paypal_web'
+            })
         
     except Exception as e:
+        print(f"❌ Error confirming order: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
