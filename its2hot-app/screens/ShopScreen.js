@@ -9,9 +9,11 @@ import {
   Dimensions,
   Alert,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLogger, logError } from '../hooks/useLogger';
+import PaymentService from '../services/PaymentService';
 
 const { width } = Dimensions.get('window');
 
@@ -79,13 +81,29 @@ export default function ShopScreen() {
   
 
 
-  const handleBuyPress = () => {
+  const handleBuyPress = async () => {
     const total = (currentProduct.price * quantity).toFixed(2);
-    logger.log('User initiated purchase', 'Shop', { product: currentProduct.name, color: currentColor.name, size: selectedSize, quantity, total });
+    const orderData = {
+      product: currentProduct.name,
+      color: currentColor.name,
+      size: selectedSize,
+      quantity: quantity,
+      total: total
+    };
+
+    logger.log('User initiated purchase', 'Shop', orderData);
+
     try {
+      // Check if payment is supported
+      if (!PaymentService.isSupported) {
+        Alert.alert('Payment Not Available', 'Payment is not available on this device.');
+        return;
+      }
+
+      // Show order confirmation
       Alert.alert(
         'Purchase Confirmation',
-        `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed to PayPal?`,
+        `Order Summary:\n\nDesign: ${currentProduct.name}\nColor: ${currentColor.name}\nSize: ${selectedSize}\nQuantity: ${quantity}\nTotal: $${total}\n\nProceed with ${Platform.OS === 'ios' ? 'Apple Pay' : Platform.OS === 'android' ? 'Google Pay' : 'web checkout'}?`,
         [
           {
             text: 'Cancel',
@@ -94,29 +112,52 @@ export default function ShopScreen() {
           },
           {
             text: 'Buy Now',
-            onPress: () => {
-              logger.log('User confirmed purchase, redirecting to PayPal', 'Shop');
-              // Here you would integrate with your PayPal backend
-              Alert.alert(
-                'Redirecting to PayPal',
-                'You will be redirected to PayPal to complete your purchase.',
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      // Mock PayPal redirect
-                      logger.log('Mock PayPal payment completed', 'Shop');
-                      Alert.alert('Success', 'Payment completed! Your shirt will ship in 2-3 business days.');
-                    },
-                  },
-                ]
-              );
+            onPress: async () => {
+              await processPurchase(orderData);
             },
           },
         ]
       );
     } catch (error) {
       logger.error('Error during purchase flow: ' + (error?.toString?.() || String(error)), 'Shop Exception');
+      Alert.alert('Error', 'An error occurred while processing your purchase. Please try again.');
+    }
+  };
+
+  const processPurchase = async (orderData) => {
+    try {
+      logger.log('Processing payment', 'Shop', { method: Platform.OS === 'ios' ? 'Apple Pay' : Platform.OS === 'android' ? 'Google Pay' : 'Web' });
+
+      // Create order on backend
+      const orderResult = await PaymentService.createOrder(orderData);
+      logger.log('Order created', 'Shop', { orderId: orderResult.order_id });
+
+      // Process payment
+      const paymentResult = await PaymentService.processPayment(orderData);
+      logger.log('Payment processed', 'Shop', { 
+        transactionId: paymentResult.transactionId,
+        method: paymentResult.method 
+      });
+
+      // Confirm order with payment result
+      const confirmResult = await PaymentService.confirmOrder(orderResult.order_id, paymentResult);
+      logger.log('Order confirmed', 'Shop', { orderId: confirmResult.order_id });
+
+      // Show success message
+      Alert.alert(
+        'Payment Successful!',
+        `Your order has been placed successfully.\n\nOrder ID: ${confirmResult.order_id}\nTransaction ID: ${paymentResult.transactionId}\n\nYour shirt will ship in 2-3 business days.`,
+        [{ text: 'OK' }]
+      );
+
+    } catch (error) {
+      logger.error('Purchase processing error: ' + (error?.toString?.() || String(error)), 'Shop Exception');
+      
+      if (error.message === 'Payment cancelled') {
+        Alert.alert('Payment Cancelled', 'Your payment was cancelled.');
+      } else {
+        Alert.alert('Payment Error', 'An error occurred while processing your payment. Please try again.');
+      }
     }
   };
 

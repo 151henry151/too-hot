@@ -1,46 +1,53 @@
 #!/usr/bin/env python3
 """
-Database migration script to add missing columns to existing tables.
+Database migration script to add CommitInfo table for time tracking
 """
 
 import os
 import sys
-from sqlalchemy import text
-from app import app, db
+from datetime import datetime
+from sqlalchemy import create_engine, text
+
+# Add the current directory to the path so we can import app
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app import db, CommitInfo
 
 def migrate_database():
-    """Add missing columns to existing database tables"""
+    """Add CommitInfo table to the database"""
+    from app import app
+    
     with app.app_context():
         try:
-            # Check if location column exists in Device table
-            result = db.session.execute(text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'device' AND column_name = 'location'
-            """))
+            # Create the new table
+            db.create_all()
             
-            if not result.fetchone():
-                print("Adding 'location' column to Device table...")
-                db.session.execute(text("""
-                    ALTER TABLE device 
-                    ADD COLUMN location VARCHAR(128) DEFAULT 'auto'
+            # Check if CommitInfo table exists
+            engine = db.engine
+            with engine.connect() as conn:
+                result = conn.execute(text("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='commit_info'
                 """))
-                db.session.commit()
-                print("✅ Successfully added 'location' column to Device table")
-            else:
-                print("✅ 'location' column already exists in Device table")
+                table_exists = result.fetchone() is not None
                 
-        except Exception as e:
-            print(f"❌ Error during migration: {e}")
-            db.session.rollback()
-            return False
+            if table_exists:
+                print("✅ CommitInfo table already exists")
+            else:
+                print("✅ Created CommitInfo table")
+                
+            print("✅ Database migration completed successfully")
+            return True
             
-        return True
+        except Exception as e:
+            print(f"❌ Database migration failed: {e}")
+            return False
 
 if __name__ == "__main__":
-    print("Running database migration...")
-    if migrate_database():
-        print("✅ Database migration completed successfully")
+    print("🔄 Starting database migration...")
+    success = migrate_database()
+    if success:
+        print("✅ Migration completed successfully!")
     else:
-        print("❌ Database migration failed")
+        print("❌ Migration failed!")
         sys.exit(1) 

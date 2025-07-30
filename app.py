@@ -194,6 +194,30 @@ class SchedulerLog(db.Model):
             'timestamp': self.timestamp.isoformat()
         }
 
+class CommitInfo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    commit_hash = db.Column(db.String(40), unique=True, nullable=False)  # Full commit hash
+    commit_message = db.Column(db.Text, nullable=False)
+    commit_date = db.Column(db.DateTime, nullable=False)
+    lines_added = db.Column(db.Integer, nullable=True)
+    lines_deleted = db.Column(db.Integer, nullable=True)
+    lines_changed = db.Column(db.Integer, nullable=True)
+    time_spent_minutes = db.Column(db.Integer, nullable=True)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'commit_hash': self.commit_hash,
+            'commit_message': self.commit_message,
+            'commit_date': self.commit_date.isoformat(),
+            'lines_added': self.lines_added,
+            'lines_deleted': self.lines_deleted,
+            'lines_changed': self.lines_changed,
+            'time_spent_minutes': self.time_spent_minutes,
+            'last_updated': self.last_updated.isoformat()
+        }
+
 # --- Initialize DB ---
 # Remove the @app.before_first_request decorator and function
 # Instead, use app.app_context() at startup
@@ -2200,12 +2224,14 @@ def time_tracking():
         print('[DEBUG] Using cached GitHub commit data')
         rows, total_hours, total_mins, error = github_cache['data']
         return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=error)
+    
     if not GITHUB_TOKEN:
         print('[WARNING] GITHUB_TOKEN is not set! Using unauthenticated GitHub API requests.')
     else:
         print('[DEBUG] Using GITHUB_TOKEN for authenticated GitHub API requests.')
+    
     try:
-        # Fetch ALL commit history from GitHub API (not just latest 100)
+        # First, get all commits from GitHub API
         commits = []
         page = 1
         per_page = 100
@@ -2236,6 +2262,7 @@ def time_tracking():
         
         # Sort by datetime descending (newest first)
         commits.sort(key=lambda x: x['datetime'], reverse=True)
+        
         # Filter out time tracking commits (robust substring check)
         filtered_commits = []
         for c in commits:
@@ -2248,6 +2275,139 @@ def time_tracking():
             ):
                 filtered_commits.append(c)
         commits = filtered_commits
+        
+        # Now efficiently process commits using database
+        rows = []
+        total_minutes = 0
+        any_missing_stats = False
+        commits_to_fetch = []
+        
+        # Check which commits we need to fetch from GitHub
+        for i, c in enumerate(commits):
+            commit_hash = c['hash']
+            
+            # Check if we already have this commit in the database
+            existing_commit = CommitInfo.query.filter_by(commit_hash=commit_hash).first()
+            
+            if existing_commit:
+                # Use existing data
+                lines_changed = existing_commit.lines_changed
+                time_spent = existing_commit.time_spent_minutes
+                if time_spent is None:
+                    # Calculate time spent if not stored
+                    if i == len(commits) - 1:
+                        time_spent = 190  # Special case for initial commit
+                    else:
+                        delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
+                        if delta >= 120:
+                            time_spent = min(lines_changed * 3 if lines_changed else 120, 180)
+                        else:
+                            time_spent = min(max(int(delta), 0), 120)
+                    
+                    # Update the database with calculated time
+                    existing_commit.time_spent_minutes = time_spent
+                    existing_commit.last_updated = datetime.utcnow()
+                    db.session.commit()
+            else:
+                # Need to fetch this commit's stats
+                commits_to_fetch.append((i, c))
+                lines_changed = None
+                time_spent = None
+            
+            # Calculate time spent if not already calculated
+            if time_spent is None:
+                if i == len(commits) - 1:
+                    time_spent = 190  # Special case for initial commit
+                else:
+                    delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
+                    if delta >= 120:
+                        time_spent = min(lines_changed * 3 if lines_changed else 120, 180)
+                    else:
+                        time_spent = min(max(int(delta), 0), 120)
+            
+            total_minutes += time_spent
+            
+            # Format datetime as MM-DD h:mm AM/PM in US Eastern Time
+            dt_eastern = c['datetime'].astimezone(timezone('US/Eastern'))
+            dt_str = dt_eastern.strftime('%m-%d %I:%M %p')
+            
+            rows.append({
+                'hash': c['hash'][:7],
+                'full_hash': c['hash'],
+                'msg': c['msg'],
+                'datetime': dt_str,
+                'time_spent': time_spent,
+                'lines_changed': lines_changed
+            })
+        
+        # Fetch missing commit stats in batches to avoid rate limiting
+        if commits_to_fetch:
+            print(f'[DEBUG] Fetching stats for {len(commits_to_fetch)} commits')
+            for i, (index, c) in enumerate(commits_to_fetch):
+                try:
+                    stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{c["hash"]}'
+                    stats_resp = requests.get(stats_url, headers=github_headers())
+                    
+                    if stats_resp.status_code == 200:
+                        stats = stats_resp.json().get('stats', {})
+                        additions = stats.get('additions', 0)
+                        deletions = stats.get('deletions', 0)
+                        lines_changed = additions + deletions
+                        
+                        # Calculate time spent
+                        if index == len(commits) - 1:
+                            time_spent = 190  # Special case for initial commit
+                        else:
+                            delta = (c['datetime'] - commits[index+1]['datetime']).total_seconds() / 60
+                            if delta >= 120:
+                                time_spent = min(lines_changed * 3, 180)
+                            else:
+                                time_spent = min(max(int(delta), 0), 120)
+                        
+                        # Store in database
+                        commit_info = CommitInfo(
+                            commit_hash=c['hash'],
+                            commit_message=c['msg'],
+                            commit_date=c['datetime'],
+                            lines_added=additions,
+                            lines_deleted=deletions,
+                            lines_changed=lines_changed,
+                            time_spent_minutes=time_spent
+                        )
+                        db.session.add(commit_info)
+                        
+                        # Update the row with fetched data
+                        rows[index]['lines_changed'] = lines_changed
+                        rows[index]['time_spent'] = time_spent
+                        
+                    else:
+                        any_missing_stats = True
+                        rows[index]['lines_changed'] = None
+                        
+                    # Add small delay to avoid rate limiting
+                    if i < len(commits_to_fetch) - 1:
+                        time.sleep(0.1)
+                        
+                except Exception as e:
+                    print(f'[ERROR] Failed to fetch stats for commit {c["hash"]}: {e}')
+                    any_missing_stats = True
+                    rows[index]['lines_changed'] = None
+            
+            # Commit all database changes
+            try:
+                db.session.commit()
+            except Exception as e:
+                print(f'[ERROR] Failed to commit database changes: {e}')
+                db.session.rollback()
+        
+        total_hours = total_minutes // 60
+        total_mins = total_minutes % 60
+        
+        github_cache['data'] = (rows, total_hours, total_mins, None)
+        github_cache['timestamp'] = now
+        
+        return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None, any_missing_stats=any_missing_stats)
+        
     except Exception as e:
         err_msg = f"Failed to fetch commit history: {e}"
         if not GITHUB_TOKEN:
@@ -2255,63 +2415,6 @@ def time_tracking():
         github_cache['data'] = ([], 0, 0, err_msg)
         github_cache['timestamp'] = now
         return render_template('time_tracking.html', rows=[], total_hours=0, total_mins=0, error=err_msg)
-    # Calculate time spent per commit
-    time_spent = []
-    total_minutes = 0
-    n = len(commits)
-    for i in range(n):
-        if i == n - 1:
-            spent = 190  # Special case for initial commit (oldest)
-        else:
-            delta = (commits[i]['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
-            if delta >= 120:
-                # Estimate by lines changed (insertions + deletions), capped at 180 min
-                stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{commits[i+1]["hash"]}'
-                stats_resp = requests.get(stats_url, headers=github_headers())
-                if stats_resp.status_code == 200:
-                    stats = stats_resp.json().get('stats', {})
-                    lines = stats.get('additions', 0) + stats.get('deletions', 0)
-                    spent = min(lines * 3, 180)
-                else:
-                    spent = 120  # fallback if API fails
-            else:
-                spent = min(max(int(delta), 0), 120)
-        time_spent.append(spent)
-        total_minutes += spent
-    rows = []
-    any_missing_stats = False
-    for i, c in enumerate(commits):
-        # Fetch lines added/deleted for this commit
-        stats_url = f'https://api.github.com/repos/151henry151/too-hot/commits/{c["hash"]}'
-        stats_resp = requests.get(stats_url, headers=github_headers())
-        if stats_resp.status_code == 200:
-            stats = stats_resp.json().get('stats', {})
-            if 'additions' in stats and 'deletions' in stats:
-                additions = stats.get('additions', 0)
-                deletions = stats.get('deletions', 0)
-                lines_changed = additions + deletions
-            else:
-                lines_changed = None
-                any_missing_stats = True
-        else:
-            lines_changed = None
-            any_missing_stats = True
-        # Format datetime as MM-DD h:mm AM/PM in US Eastern Time
-        dt_eastern = c['datetime'].astimezone(timezone('US/Eastern'))
-        dt_str = dt_eastern.strftime('%m-%d %I:%M %p')
-        rows.append({
-            'hash': c['hash'][:7],
-            'full_hash': c['hash'],
-            'msg': c['msg'],
-            'datetime': dt_str,
-            'time_spent': time_spent[i],
-            'lines_changed': lines_changed
-        })
-    total_hours = total_minutes // 60
-    total_mins = total_minutes % 60
-    github_cache['data'] = (rows, total_hours, total_mins, None)
-    github_cache['timestamp'] = now
-    return render_template('time_tracking.html', rows=rows, total_hours=total_hours, total_mins=total_mins, error=None, any_missing_stats=any_missing_stats)
 
 @app.route('/admin/delete-subscriber', methods=['POST'])
 @requires_auth
@@ -2661,6 +2764,77 @@ def migrate_database():
             'success': False,
             'error': f'Migration failed: {str(e)}'
         }), 500
+
+@app.route('/api/clear-commit-cache', methods=['POST'])
+@requires_auth
+def clear_commit_cache():
+    """Clear the GitHub commit cache to force a fresh fetch"""
+    try:
+        global github_cache
+        github_cache = {'data': None, 'timestamp': 0}
+        return jsonify({'success': True, 'message': 'Commit cache cleared successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/create-order', methods=['POST'])
+def create_order():
+    """Create a new order for mobile app payments"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['product', 'color', 'size', 'quantity', 'total', 'platform', 'payment_method']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        # Generate order ID
+        order_id = f"ORDER_{int(time.time())}_{random.randint(1000, 9999)}"
+        
+        # Store order in session or database (for now, just return success)
+        # In production, you'd store this in a database
+        
+        return jsonify({
+            'success': True,
+            'order_id': order_id,
+            'message': 'Order created successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/confirm-order', methods=['POST'])
+def confirm_order():
+    """Confirm an order after payment processing"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['order_id', 'payment_result', 'platform']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        order_id = data['order_id']
+        payment_result = data['payment_result']
+        platform = data['platform']
+        
+        # In production, you'd:
+        # 1. Verify the payment with your payment processor
+        # 2. Update the order status in your database
+        # 3. Send confirmation email
+        # 4. Create Printful order
+        
+        # For now, just return success
+        return jsonify({
+            'success': True,
+            'order_id': order_id,
+            'message': 'Order confirmed successfully',
+            'payment_method': payment_result.get('method', 'unknown')
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Test Printful connection on startup

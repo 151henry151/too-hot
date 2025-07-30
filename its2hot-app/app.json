@@ -14,7 +14,12 @@
       "bundleIdentifier": "com.romp.its2hot",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location to provide accurate temperature alerts for your area.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSApplePayUsageDescription": "This app uses Apple Pay to process t-shirt purchases securely.",
+        "PKPaymentNetworks": ["visa", "mastercard", "amex", "discover"]
+      },
+      "entitlements": {
+        "com.apple.developer.in-app-payments": ["merchant.com.romp.its2hot"]
       }
     },
     "android": {
@@ -35,7 +40,20 @@
       "notification": {
         "icon": "./assets/images/notification-icon.png",
         "color": "#1a1a1a"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "its2hot.org"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
