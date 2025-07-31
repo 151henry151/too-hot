@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLogger, logError } from '../hooks/useLogger';
@@ -474,6 +475,20 @@ export default function ShopScreen() {
             <Ionicons name="cart" size={20} color="white" />
             <Text style={styles.buyButtonText}>Buy Now</Text>
           </TouchableOpacity>
+
+          {/* Web Shop Link */}
+          <TouchableOpacity
+            style={styles.webShopLink}
+            onPress={() => Linking.openURL('https://its2hot.org/shop')}
+            {...createButtonAccessibility(
+              'Open web shop',
+              'Opens the full web shop in your browser for alternative purchase options'
+            )}
+          >
+            <Ionicons name="globe-outline" size={16} color="#3b82f6" />
+            <Text style={styles.webShopLinkText}>Prefer to shop online?</Text>
+            <Ionicons name="open-outline" size={16} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -730,6 +745,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  webShopLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  webShopLinkText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '500',
+    marginHorizontal: 8,
   },
   secureText: {
     fontSize: 12,
