@@ -8,6 +8,8 @@
     "scheme": "its2hotapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "privacy": "public",
+    "primaryColor": "#3b82f6",
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 0,
@@ -28,7 +30,14 @@
         "UIBackgroundModes": ["remote-notification"],
         "UIRequiresFullScreen": false,
         "UIStatusBarStyle": "default",
-        "UIViewControllerBasedStatusBarAppearance": true
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "LSApplicationQueriesSchemes": ["https"],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "com.romp.its2hot",
+            "CFBundleURLSchemes": ["its2hotapp"]
+          }
+        ]
       },
       "entitlements": {
         "com.apple.developer.in-app-payments": ["merchant.com.romp.its2hot"]

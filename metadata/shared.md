@@ -7,6 +7,11 @@
 - **Platform**: iOS, Android
 - **Framework**: Expo/React Native
 
+## Required URLs
+- **Privacy Policy**: https://its2hot.org/privacy-policy
+- **Support URL**: https://its2hot.org (or specific support page)
+- **Website**: https://its2hot.org
+
 ## Target Audience
 
 ### Primary Audience
@@ -51,6 +56,7 @@
 - **Privacy-Focused**: Minimal data collection
 - **Location-Based**: Uses location for accurate temperature monitoring
 - **Secure**: All data transmitted securely
+- **Privacy Policy**: https://its2hot.org/privacy-policy
 
 ## Call-to-Action
 **"Download now and become part of the climate solution!"**

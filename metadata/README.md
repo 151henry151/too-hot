@@ -8,6 +8,7 @@ This directory contains all the metadata needed for publishing the "IT'S TOO HOT
 metadata/
 ├── README.md                    # This file
 ├── shared.md                    # Shared metadata for both platforms
+├── app-store-urls.md           # Required URLs and submission metadata
 ├── app-store/                   # Apple App Store specific files
 │   ├── description.md          # Full app description and metadata
 │   └── screenshots.md          # Screenshot text for App Store
@@ -20,6 +21,7 @@ metadata/
 
 ### Shared Files
 - **`shared.md`**: Common metadata, target audience, value propositions, and brand guidelines used across both platforms
+- **`app-store-urls.md`**: Required URLs, privacy policy, support information, and submission metadata for both app stores
 
 ### Apple App Store
 - **`app-store/description.md`**: Complete app description, keywords, categories, and metadata for Apple App Store
