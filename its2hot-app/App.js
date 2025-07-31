@@ -12,6 +12,9 @@ import TooHotTodayScreen from './screens/TooHotTodayScreen';
 // Import services
 import updateService from './services/UpdateService';
 
+// Import error handling
+import ErrorBoundary from './components/ErrorBoundary';
+
 const Stack = createStackNavigator();
 
 // Configure notification behavior
@@ -67,43 +70,45 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <StatusBar style="light" />
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#1a1a1a',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen}
-          options={{
-            title: 'TOO HOT',
-            headerRight: () => null,
+    <ErrorBoundary>
+      <NavigationContainer ref={navigationRef}>
+        <StatusBar style="light" />
+        <Stack.Navigator
+          initialRouteName="Home"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#1a1a1a',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
           }}
-        />
-        <Stack.Screen 
-          name="Shop" 
-          component={ShopScreen}
-          options={{
-            title: 'Shop',
-          }}
-        />
-        <Stack.Screen
-          name="TooHotToday"
-          component={TooHotTodayScreen}
-          options={{
-            title: 'Too Hot Today',
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+        >
+          <Stack.Screen 
+            name="Home" 
+            component={HomeScreen}
+            options={{
+              title: 'TOO HOT',
+              headerRight: () => null,
+            }}
+          />
+          <Stack.Screen 
+            name="Shop" 
+            component={ShopScreen}
+            options={{
+              title: 'Shop',
+            }}
+          />
+          <Stack.Screen
+            name="TooHotToday"
+            component={TooHotTodayScreen}
+            options={{
+              title: 'Too Hot Today',
+            }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ErrorBoundary>
   );
 } 
