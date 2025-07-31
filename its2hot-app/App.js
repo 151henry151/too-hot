@@ -9,6 +9,9 @@ import HomeScreen from './screens/HomeScreen';
 import ShopScreen from './screens/ShopScreen';
 import TooHotTodayScreen from './screens/TooHotTodayScreen';
 
+// Import services
+import updateService from './services/UpdateService';
+
 const Stack = createStackNavigator();
 
 // Configure notification behavior
@@ -22,6 +25,22 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   const navigationRef = React.useRef();
+  
+  useEffect(() => {
+    // Initialize update service
+    const initializeApp = async () => {
+      try {
+        // Initialize OTA updates
+        await updateService.initialize();
+        console.log('✅ Update service initialized');
+      } catch (error) {
+        console.error('❌ Error initializing update service:', error);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
   useEffect(() => {
     // Set up notification listeners when app starts
     const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {

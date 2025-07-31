@@ -2941,6 +2941,101 @@ def confirm_order():
         print(f"❌ Error confirming order: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/updates/check', methods=['POST'])
+@requires_auth
+def check_updates():
+    """Check for available updates"""
+    try:
+        # This would typically integrate with Expo's update API
+        # For now, we'll return a mock response
+        return jsonify({
+            'success': True,
+            'message': 'Update check completed. No new updates available.',
+            'update_info': {
+                'current_version': '1.0.0',
+                'latest_version': '1.0.0',
+                'update_available': False,
+                'last_check': datetime.utcnow().isoformat()
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to check for updates: {str(e)}'
+        }), 500
+
+@app.route('/api/updates/publish', methods=['POST'])
+@requires_auth
+def publish_update():
+    """Publish a new update"""
+    try:
+        data = request.get_json()
+        update_type = data.get('update_type', 'regular')
+        channel = data.get('channel', 'production')
+        
+        # This would typically use Expo's update API to publish
+        # For now, we'll return a mock response
+        return jsonify({
+            'success': True,
+            'message': f'Update published successfully to {channel} channel.',
+            'update_info': {
+                'type': update_type,
+                'channel': channel,
+                'published_at': datetime.utcnow().isoformat(),
+                'version': '1.0.1'
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to publish update: {str(e)}'
+        }), 500
+
+@app.route('/api/updates/rollback', methods=['POST'])
+@requires_auth
+def rollback_update():
+    """Rollback to previous update"""
+    try:
+        # This would typically use Expo's update API to rollback
+        # For now, we'll return a mock response
+        return jsonify({
+            'success': True,
+            'message': 'Update rolled back successfully to previous version.',
+            'rollback_info': {
+                'previous_version': '1.0.0',
+                'rolled_back_at': datetime.utcnow().isoformat()
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to rollback update: {str(e)}'
+        }), 500
+
+@app.route('/api/updates/status', methods=['GET'])
+@requires_auth
+def get_update_status():
+    """Get current update status"""
+    try:
+        # This would typically fetch from Expo's update API
+        # For now, we'll return a mock response
+        return jsonify({
+            'success': True,
+            'status': {
+                'current_version': '1.0.0',
+                'latest_version': '1.0.0',
+                'update_available': False,
+                'last_check': datetime.utcnow().isoformat(),
+                'channel': 'production',
+                'enabled': True
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to get update status: {str(e)}'
+        }), 500
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")

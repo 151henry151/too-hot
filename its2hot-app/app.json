@@ -8,6 +8,14 @@
     "scheme": "its2hotapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/cd9501a1-6d26-4451-ab0a-54631514d4fe"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
@@ -84,6 +92,7 @@
       "expo-router",
       "expo-notifications",
       "expo-location",
+      "expo-updates",
       [
         "expo-splash-screen",
         {
