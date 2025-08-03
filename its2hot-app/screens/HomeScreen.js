@@ -137,17 +137,10 @@ export default function HomeScreen({ navigation }) {
 
       logger.info('Notification permission granted', 'Notifications');
 
-      // Get device token
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: 'cd9501a1-6d26-4451-ab0a-54631514d4fe',
-      });
-
-      logger.info('Got push token', 'Notifications', { token: token.data });
-
       // Get user location
       const location = await getUserLocation();
       
-      // Register device with backend
+      // Register device with backend (this will get the push token)
       setLoading(LOADING_KEYS.DEVICE_REGISTRATION, true, LOADING_MESSAGES[LOADING_KEYS.DEVICE_REGISTRATION]);
       await registerDeviceWithLocation(location);
       setLoading(LOADING_KEYS.DEVICE_REGISTRATION, false);
@@ -211,13 +204,19 @@ export default function HomeScreen({ navigation }) {
 
   const registerDeviceWithLocation = async (location) => {
     try {
+      // Get the push token first
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: 'cd9501a1-6d26-4451-ab0a-54631514d4fe',
+      });
+
       const response = await fetch('https://its2hot.org/api/register-device', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          platform: Platform.OS,
+          push_token: token.data,
+          platform: 'expo',
           device_type: Platform.OS === 'ios' ? 'ios' : 'android',
           location: location,
         }),
@@ -227,7 +226,7 @@ export default function HomeScreen({ navigation }) {
         throw new Error('Failed to register device');
       }
 
-      logger.info('Device registered successfully', 'Device Registration', { location });
+      logger.info('Device registered successfully', 'Device Registration', { location, token: token.data });
     } catch (error) {
       logger.error('Device registration error: ' + (error?.toString?.() || String(error)), 'Device Registration');
       throw error;
