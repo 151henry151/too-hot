@@ -476,11 +476,6 @@ def privacy_policy():
     """Serve the privacy policy page"""
     return render_template('privacy_policy.html')
 
-@app.route('/privacy')
-def privacy():
-    """Serve the privacy policy page at /privacy"""
-    return render_template('privacy_policy.html')
-
 @app.route('/support')
 def support():
     """Serve the support page"""

@@ -3,7 +3,7 @@
 ## Required URLs for App Store Submission
 
 ### Apple App Store
-- **Privacy Policy URL**: https://its2hot.org/privacy
+- **Privacy Policy URL**: https://its2hot.org/privacy-policy
 - **Support URL**: https://its2hot.org
 - **Marketing URL**: https://its2hot.org
 - **App Store Review Information**:
@@ -12,7 +12,7 @@
   - **Notes**: "This app provides temperature alerts for climate awareness. Users can subscribe to notifications when temperatures spike 10°F+ above average in their area."
 
 ### Google Play Store
-- **Privacy Policy URL**: https://its2hot.org/privacy
+- **Privacy Policy URL**: https://its2hot.org/privacy-policy
 - **Support URL**: https://its2hot.org
 - **Website URL**: https://its2hot.org
 - **Play Console Information**:
@@ -60,7 +60,7 @@
 - **No language**: ✅
 
 ### Store Listing
-- **Privacy Policy**: https://its2hot.org/privacy
+- **Privacy Policy**: https://its2hot.org/privacy-policy
 - **App Support**: https://its2hot.org
 - **Website**: https://its2hot.org
 - **Email**: [Your contact email]
@@ -77,7 +77,7 @@
 - **International Users**: GDPR/CCPA compliance
 
 ### Privacy Policy URL
-**https://its2hot.org/privacy**
+**https://its2hot.org/privacy-policy**
 
 This URL must be:
 - ✅ Accessible without login
