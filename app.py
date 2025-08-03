@@ -476,6 +476,11 @@ def privacy_policy():
     """Serve the privacy policy page"""
     return render_template('privacy_policy.html')
 
+@app.route('/support')
+def support():
+    """Serve the support page"""
+    return render_template('support.html')
+
 @app.route('/shop')
 def shop():
     # Get actual product variants from Printful
@@ -899,31 +904,71 @@ def register_device():
 @app.route('/api/unregister-device', methods=['POST'])
 def unregister_device():
     data = request.get_json()
+    
+    # Handle both old format (push_token) and new format (platform/device_type)
     push_token = data.get('push_token')
-    if not push_token:
-        return jsonify({'error': 'Push token is required'}), 400
-    device = Device.query.filter_by(push_token=push_token).first()
-    if device:
-        device.is_active = False
-        db.session.commit()
-        print(f"✅ Device unregistered: {device.platform} {device.device_type} - {push_token[:20]}...")
-        # Add log entry for unregistration
-        log = PushNotificationLog(
-            device_id=device.id,
-            push_token=device.push_token,
-            platform=device.platform,
-            device_type=device.device_type,
-            title='Push notifications disabled',
-            body='User disabled push notifications',
-            data=None,
-            status='unregistered',
-            error=None
-        )
-        db.session.add(log)
-        db.session.commit()
-        return jsonify({'message': 'Device unregistered successfully'})
-    print(f"❌ Device not found for unregistration: {push_token[:20]}...")
-    return jsonify({'error': 'Device not found'}), 404
+    platform = data.get('platform')
+    device_type = data.get('device_type')
+    
+    if push_token:
+        # Original format - unregister by push token
+        device = Device.query.filter_by(push_token=push_token).first()
+        if device:
+            device.is_active = False
+            db.session.commit()
+            print(f"✅ Device unregistered by token: {device.platform} {device.device_type} - {push_token[:20]}...")
+            # Add log entry for unregistration
+            log = PushNotificationLog(
+                device_id=device.id,
+                push_token=device.push_token,
+                platform=device.platform,
+                device_type=device.device_type,
+                title='Push notifications disabled',
+                body='User disabled push notifications',
+                data=None,
+                status='unregistered',
+                error=None
+            )
+            db.session.add(log)
+            db.session.commit()
+            return jsonify({'message': 'Device unregistered successfully'})
+        print(f"❌ Device not found for unregistration: {push_token[:20]}...")
+        return jsonify({'error': 'Device not found'}), 404
+    
+    elif platform and device_type:
+        # New format - unregister by platform/device_type (for Expo Go testing)
+        # Find the most recent active device for this platform/device_type
+        device = Device.query.filter_by(
+            platform=platform,
+            device_type=device_type,
+            is_active=True
+        ).order_by(Device.registered_at.desc()).first()
+        
+        if device:
+            device.is_active = False
+            db.session.commit()
+            print(f"✅ Device unregistered by platform: {device.platform} {device.device_type}")
+            # Add log entry for unregistration
+            log = PushNotificationLog(
+                device_id=device.id,
+                push_token=device.push_token,
+                platform=device.platform,
+                device_type=device.device_type,
+                title='Push notifications disabled',
+                body='User disabled push notifications',
+                data=None,
+                status='unregistered',
+                error=None
+            )
+            db.session.add(log)
+            db.session.commit()
+            return jsonify({'message': 'Device unregistered successfully'})
+        else:
+            print(f"❌ No active device found for platform: {platform}, device_type: {device_type}")
+            return jsonify({'error': 'No active device found'}), 404
+    
+    else:
+        return jsonify({'error': 'Either push_token or platform/device_type is required'}), 400
 
 @app.route('/api/check-temperatures', methods=['GET'])
 def check_temperatures():

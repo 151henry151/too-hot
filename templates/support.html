@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - Too Hot Climate Awareness Campaign</title>
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Enhanced Styling */
+        .gradient-bg {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 45, 45, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .temperature-icon {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Fade-in animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        .fade-in-delay-1 {
+            animation-delay: 0.2s;
+        }
+        
+        .fade-in-delay-2 {
+            animation-delay: 0.4s;
+        }
+        
+        .fade-in-delay-3 {
+            animation-delay: 0.6s;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Enhanced text styling */
+        .hero-text {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Support specific styles */
+        .support-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .contact-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        
+        .faq-item {
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-item:hover {
+            border-left-color: #1d4ed8;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6 relative z-10">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-thermometer-half text-3xl temperature-icon"></i>
+                    <h1 class="text-3xl font-bold hero-text" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">TOO HOT</h1>
+                </div>
+                <p class="text-lg opacity-90 hero-text" style="font-family: 'Arial Black', sans-serif; letter-spacing: 1px;">CLIMATE AWARENESS CAMPAIGN</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 relative z-10">
+        <!-- Page Title -->
+        <div class="text-center mb-8 fade-in">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Support Center</h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Need help with the TOO HOT app or have questions about climate awareness? We're here to help.
+            </p>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="contact-info rounded-lg shadow-lg p-8 mb-8 fade-in fade-in-delay-1">
+            <div class="text-center">
+                <div class="text-5xl mb-4">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Get in Touch</h3>
+                <p class="text-lg mb-6 opacity-90">
+                    We're committed to helping you with any questions or issues you might have.
+                </p>
+                <div class="bg-white bg-opacity-20 rounded-lg p-6 inline-block">
+                    <div class="text-2xl font-bold mb-2">support@its2hot.org</div>
+                    <p class="opacity-90">Email us anytime - we typically respond within 24 hours</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Issues -->
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
+            <!-- App Issues -->
+            <div class="support-card rounded-lg shadow-lg p-6 card-hover fade-in fade-in-delay-2">
+                <div class="text-4xl text-blue-500 mb-4">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">App Issues</h3>
+                <ul class="text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Notifications not working
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Location services problems
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        App crashes or freezes
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Temperature data accuracy
+                    </li>
+                </ul>
+            </div>
+
+            <!-- General Support -->
+            <div class="support-card rounded-lg shadow-lg p-6 card-hover fade-in fade-in-delay-2">
+                <div class="text-4xl text-green-500 mb-4">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">General Questions</h3>
+                <ul class="text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Climate data sources
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        How temperature alerts work
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Privacy and data usage
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                        Merchandise and shipping
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="support-card rounded-lg shadow-lg p-8 mb-8 fade-in fade-in-delay-3">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Frequently Asked Questions</h3>
+            
+            <div class="space-y-6">
+                <div class="faq-item p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">How does the temperature alert system work?</h4>
+                    <p class="text-gray-600">
+                        Our app monitors real-time temperature data and compares it to historical averages. When temperatures are 10°F or more above normal, you'll receive an alert to help raise awareness about climate change.
+                    </p>
+                </div>
+
+                <div class="faq-item p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Why aren't I receiving notifications?</h4>
+                    <p class="text-gray-600">
+                        Make sure you've granted notification permissions to the app in your device settings. Also check that you've enabled location services, as we need your location to provide accurate temperature alerts.
+                    </p>
+                </div>
+
+                <div class="faq-item p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Where does the temperature data come from?</h4>
+                    <p class="text-gray-600">
+                        We use reliable weather data sources and compare current temperatures to historical averages for your location. This helps identify when temperatures are significantly above normal levels.
+                    </p>
+                </div>
+
+                <div class="faq-item p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">How can I help raise climate awareness?</h4>
+                    <p class="text-gray-600">
+                        Share temperature alerts on social media, wear our "IT'S TOO HOT!" merchandise, and engage in conversations about climate change. Every action helps spread awareness about this critical issue.
+                    </p>
+                </div>
+
+                <div class="faq-item p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Is my data private and secure?</h4>
+                    <p class="text-gray-600">
+                        Yes, we take privacy seriously. We only collect the minimum data needed to provide temperature alerts. Your location data is used solely for weather monitoring and is not shared with third parties.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Resources -->
+        <div class="support-card rounded-lg shadow-lg p-8 mb-8 fade-in fade-in-delay-3">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Additional Resources</h3>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl text-blue-500 mb-3">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Privacy Policy</h4>
+                    <a href="/privacy" class="text-blue-600 hover:text-blue-800 underline">Read our privacy policy</a>
+                </div>
+
+                <div class="text-center">
+                    <div class="text-3xl text-green-500 mb-3">
+                        <i class="fas fa-tshirt"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Shop</h4>
+                    <a href="/shop" class="text-blue-600 hover:text-blue-800 underline">Get climate awareness merchandise</a>
+                </div>
+
+                <div class="text-center">
+                    <div class="text-3xl text-purple-500 mb-3">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Home</h4>
+                    <a href="/" class="text-blue-600 hover:text-blue-800 underline">Return to homepage</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div class="support-card rounded-lg shadow-lg p-8 fade-in fade-in-delay-3">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Still Need Help?</h3>
+            <p class="text-center text-gray-600 mb-6">
+                Can't find what you're looking for? Send us a message and we'll get back to you as soon as possible.
+            </p>
+            
+            <div class="text-center">
+                <a href="mailto:support@its2hot.org" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Email Support Team
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-400">
+                © 2024 TOO HOT Climate Awareness Campaign. Making climate change impossible to ignore.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Fade in animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const fadeElements = document.querySelectorAll('.fade-in');
+            fadeElements.forEach(element => {
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html> 

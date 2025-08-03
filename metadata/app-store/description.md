@@ -1,29 +1,25 @@
 # Apple App Store Description
 
 ## App Name
-**IT'S TOO HOT! - Climate Alert App**
+**TOO HOT**
 
 ## Subtitle
-**Get notified when temperatures are dangerously high and raise climate awareness**
+**IT'S TOO HOT! - Get notified when temperatures are 10°F+ above average.**
 
 ## Description
 
 **🌡️ GET THE ALERT, WEAR THE SHIRT! - CLIMATE FLASH MOB**
 
-When temperatures spike 10°F+ above average, it's not just uncomfortable—it's a climate emergency. "IT'S TOO HOT!" alerts you to these dangerous temperature spikes so you can join the climate flash mob and raise awareness.
+When temperatures spike 10°F+ above average, it's not just uncomfortable—it's a wakeup call. Wear your IT'S TOO HOT! shirt when you get the alert. Join the climate flash mob and raise awareness.
 
 **🔥 WHY THIS MATTERS**
 Climate change isn't abstract—it's happening right now, in your backyard. When temperatures soar above historical averages, it's a clear sign of climate disruption. This app helps you recognize these moments and turn them into viral climate action.
 
 **📱 WHAT YOU GET**
 • **Instant Alerts**: Get notified when temperatures are 10°F+ above average
-• **Local Data**: Accurate temperature monitoring for your exact location
-• **Climate Education**: Understand what these temperature spikes mean
-• **Flash Mob Coordination**: Join the climate awareness movement
-• **Community**: Connect with other climate activists
+• **Local Data**: Use your location or choose a city and state to monitor
 
 **🎯 PERFECT FOR CLIMATE ACTIVISTS**
-• **Document Climate Change**: Use temperature alerts as evidence
 • **Create Flash Mobs**: Coordinate climate awareness events
 • **Take Action**: Know when to speak up about climate issues
 • **Stay Informed**: Track climate patterns in your area
@@ -33,7 +29,7 @@ Get your "IT'S TOO HOT!" t-shirt and wear it when you get alerts. It's a powerfu
 
 **🌍 MAKE A DIFFERENCE**
 Climate change affects everyone, but awareness is the first step to action. This app helps you:
-• Recognize climate emergencies in real-time
+• Recognize global warming in real-time
 • Educate others about climate change
 • Create viral climate awareness
 • Build a global climate flash mob community
@@ -43,16 +39,15 @@ Climate change affects everyone, but awareness is the first step to action. This
 • Works with your location
 • Instant notifications
 • Free to use
-• Privacy-focused
 
 **🎪 JOIN THE CLIMATE FLASH MOB**
-When temperatures spike, it's time to act. "IT'S TOO HOT!" helps you turn climate emergencies into viral flash mobs for education, awareness, and action.
+When temperatures spike, it's time to act. "IT'S TOO HOT!" helps you turn hot days into viral flash mobs for education, awareness, and action.
 
 Download now and become part of the climate solution!
 
 ## Keywords
 ```
-climate change, temperature alert, climate activist, global warming, climate emergency, environmental app, climate action, temperature monitoring, climate awareness, environmental activist, climate education, temperature spike, climate crisis, environmental protection, climate movement, temperature tracking, climate science, environmental awareness, climate data, temperature anomaly, flash mob, climate flash mob, viral climate action, get the alert wear the shirt
+temperature alert, global warming, climate action, climate awareness, activist, climate science
 ```
 
 ## Categories
@@ -77,12 +72,12 @@ climate change, temperature alert, climate activist, global warming, climate eme
 - General public interested in climate issues
 
 ## Value Propositions
-1. **Real-time Climate Monitoring**: Know when climate emergencies are happening in your area
+1. **Real-time Climate Monitoring**: Know when climate anomolies are happening in your area
 2. **Climate Education**: Understand what temperature spikes mean for climate change
 3. **Action-Oriented**: Turn awareness into meaningful climate action
 4. **Community Building**: Connect with other climate activists
 5. **Evidence-Based**: Document climate change with real data
-6. **Accessible**: Simple, free, and privacy-focused
+6. **Accessible**: Simple, free
 7. **Impactful**: Help raise climate awareness in your community
 
 ## Call-to-Action

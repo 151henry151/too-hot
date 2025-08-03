@@ -17,24 +17,27 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
 import { useLogger, logError } from '../hooks/useLogger';
+import { useLoadingState, LOADING_KEYS, LOADING_MESSAGES } from '../hooks/useLoadingState';
+import LoadingWrapper, { LoadingOverlay, LoadingButton } from '../components/LoadingWrapper';
 import { 
   ACCESSIBILITY, 
   createButtonAccessibility, 
   createTextAccessibility, 
   createInputAccessibility,
   createImageAccessibility,
-  createModalAccessibility
+  createModalAccessibility,
+  createAccessibilityProps
 } from '../utils/accessibility';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [manualLocation, setManualLocation] = useState('');
   const logger = useLogger();
+  const { setLoading, withLoading } = useLoadingState();
 
   // Check notification permission on mount
   useEffect(() => {
@@ -46,11 +49,14 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const getUserLocation = async () => {
-    try {
+    return await withLoading(LOADING_KEYS.LOCATION_FETCH, async () => {
       logger.info('Requesting location permission', 'Location');
       
       // Request location permission
+      setLoading(LOADING_KEYS.LOCATION_PERMISSION, true, LOADING_MESSAGES[LOADING_KEYS.LOCATION_PERMISSION]);
       const { status } = await Location.requestForegroundPermissionsAsync();
+      setLoading(LOADING_KEYS.LOCATION_PERMISSION, false);
+      
       if (status !== 'granted') {
         logger.warn('Location permission denied', 'Location');
         // Show modal for manual location input instead of alert
@@ -74,10 +80,12 @@ export default function HomeScreen({ navigation }) {
       });
 
       // Reverse geocode to get city name
+      setLoading(LOADING_KEYS.LOCATION_GEOCODE, true, LOADING_MESSAGES[LOADING_KEYS.LOCATION_GEOCODE]);
       const geocode = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+      setLoading(LOADING_KEYS.LOCATION_GEOCODE, false);
 
       if (geocode && geocode.length > 0) {
         const place = geocode[0];
@@ -91,28 +99,22 @@ export default function HomeScreen({ navigation }) {
         logger.warn('Could not resolve location name', 'Location');
         return 'Unknown Location';
       }
-
-    } catch (error) {
-      logger.error('Location error: ' + (error?.toString?.() || String(error)), 'Location');
-      Alert.alert('Location Error', 'Could not get your location. Using default location.');
-      return 'auto';
-    }
+    }, LOADING_MESSAGES[LOADING_KEYS.LOCATION_FETCH]);
   };
 
   const handleNotificationSignup = async () => {
-    setIsLoading(true);
-    try {
+    return await withLoading(LOADING_KEYS.NOTIFICATION_SUBSCRIBE, async () => {
       if (!Device.isDevice) {
         const msg = 'Push notifications are only supported on physical devices.';
         logger.error(msg, 'Device check');
         Alert.alert('Error', msg);
-        setIsLoading(false);
         return;
       }
 
       logger.info('Requesting notification permission', 'Notifications');
 
       // Request permission
+      setLoading(LOADING_KEYS.NOTIFICATION_PERMISSION, true, LOADING_MESSAGES[LOADING_KEYS.NOTIFICATION_PERMISSION]);
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -121,6 +123,7 @@ export default function HomeScreen({ navigation }) {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
+      setLoading(LOADING_KEYS.NOTIFICATION_PERMISSION, false);
       
       if (finalStatus !== 'granted') {
         logger.warn('Notification permission denied', 'Notifications');
@@ -129,7 +132,6 @@ export default function HomeScreen({ navigation }) {
           'Please enable notifications in your device settings to receive temperature alerts.',
           [{ text: 'OK' }]
         );
-        setIsLoading(false);
         return;
       }
 
@@ -146,7 +148,9 @@ export default function HomeScreen({ navigation }) {
       const location = await getUserLocation();
       
       // Register device with backend
+      setLoading(LOADING_KEYS.DEVICE_REGISTRATION, true, LOADING_MESSAGES[LOADING_KEYS.DEVICE_REGISTRATION]);
       await registerDeviceWithLocation(location);
+      setLoading(LOADING_KEYS.DEVICE_REGISTRATION, false);
 
       setIsSubscribed(true);
       logger.info('Successfully subscribed to notifications', 'Notifications');
@@ -156,17 +160,11 @@ export default function HomeScreen({ navigation }) {
         'You\'re now subscribed to temperature alerts. You\'ll receive notifications when temperatures are 10°F+ hotter than average in your area.',
         [{ text: 'OK' }]
       );
-
-    } catch (error) {
-      logger.error('Notification signup error: ' + (error?.toString?.() || String(error)), 'Notifications');
-      Alert.alert('Error', 'Failed to subscribe to notifications. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    }, LOADING_MESSAGES[LOADING_KEYS.NOTIFICATION_SUBSCRIBE]);
   };
 
   const handleNotificationDisable = async () => {
-    try {
+    return await withLoading(LOADING_KEYS.NOTIFICATION_UNSUBSCRIBE, async () => {
       logger.info('Disabling notifications', 'Notifications');
       
       // Unregister from backend
@@ -189,10 +187,7 @@ export default function HomeScreen({ navigation }) {
         logger.error('Failed to unregister device', 'Notifications');
         Alert.alert('Error', 'Failed to unsubscribe. Please try again.');
       }
-    } catch (error) {
-      logger.error('Notification disable error: ' + (error?.toString?.() || String(error)), 'Notifications');
-      Alert.alert('Error', 'Failed to unsubscribe. Please try again.');
-    }
+    }, LOADING_MESSAGES[LOADING_KEYS.NOTIFICATION_UNSUBSCRIBE]);
   };
 
   const handleShopPress = () => {
@@ -206,15 +201,12 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    try {
+    return await withLoading(LOADING_KEYS.DEVICE_REGISTRATION, async () => {
       await registerDeviceWithLocation(manualLocation.trim());
       setShowLocationModal(false);
       setManualLocation('');
       Alert.alert('Success', `Location set to ${manualLocation.trim()}`);
-    } catch (error) {
-      logger.error('Manual location submit error: ' + (error?.toString?.() || String(error)), 'Location');
-      Alert.alert('Error', 'Failed to set location. Please try again.');
-    }
+    }, 'Setting location...');
   };
 
   const registerDeviceWithLocation = async (location) => {
@@ -243,14 +235,18 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      {...createAccessibilityProps(
-        'Home screen with temperature alert subscription options',
-        'Scroll to view all content on the home screen'
-      )}
+    <LoadingOverlay
+      loadingKey={LOADING_KEYS.LOCATION_FETCH}
+      loadingMessage={LOADING_MESSAGES[LOADING_KEYS.LOCATION_FETCH]}
     >
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        {...createAccessibilityProps(
+          'Home screen with temperature alert subscription options',
+          'Scroll to view all content on the home screen'
+        )}
+      >
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <Text 
@@ -299,37 +295,43 @@ export default function HomeScreen({ navigation }) {
         </Text>
         
         {isSubscribed ? (
-          <TouchableOpacity
-            style={[styles.button, styles.unsubscribeButton]}
+          <LoadingButton
+            loadingKey={LOADING_KEYS.NOTIFICATION_UNSUBSCRIBE}
             onPress={handleNotificationDisable}
-            disabled={isLoading}
-            {...createButtonAccessibility(
-              ACCESSIBILITY.LABELS.UNSUBSCRIBE_BUTTON,
-              ACCESSIBILITY.HINTS.UNSUBSCRIBE_BUTTON,
-              isLoading
-            )}
           >
-            <Ionicons name="notifications-off" size={20} color="white" />
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Unsubscribing...' : 'Unsubscribe from Alerts'}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.unsubscribeButton]}
+              {...createButtonAccessibility(
+                ACCESSIBILITY.LABELS.UNSUBSCRIBE_BUTTON,
+                ACCESSIBILITY.HINTS.UNSUBSCRIBE_BUTTON,
+                false
+              )}
+            >
+              <Ionicons name="notifications-off" size={20} color="white" />
+              <Text style={styles.buttonText}>
+                Unsubscribe from Alerts
+              </Text>
+            </TouchableOpacity>
+          </LoadingButton>
         ) : (
-          <TouchableOpacity
-            style={[styles.button, styles.subscribeButton]}
+          <LoadingButton
+            loadingKey={LOADING_KEYS.NOTIFICATION_SUBSCRIBE}
             onPress={handleNotificationSignup}
-            disabled={isLoading}
-            {...createButtonAccessibility(
-              ACCESSIBILITY.LABELS.SUBSCRIBE_BUTTON,
-              ACCESSIBILITY.HINTS.SUBSCRIBE_BUTTON,
-              isLoading
-            )}
           >
-            <Ionicons name="notifications" size={20} color="white" />
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Subscribing...' : 'Subscribe to Alerts'}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.subscribeButton]}
+              {...createButtonAccessibility(
+                ACCESSIBILITY.LABELS.SUBSCRIBE_BUTTON,
+                ACCESSIBILITY.HINTS.SUBSCRIBE_BUTTON,
+                false
+              )}
+            >
+              <Ionicons name="notifications" size={20} color="white" />
+              <Text style={styles.buttonText}>
+                Subscribe to Alerts
+              </Text>
+            </TouchableOpacity>
+          </LoadingButton>
         )}
       </View>
 
@@ -529,6 +531,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
     </ScrollView>
+    </LoadingOverlay>
   );
 }
 

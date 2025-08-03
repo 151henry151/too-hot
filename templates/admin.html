@@ -45,8 +45,7 @@
             </div>
             <!-- End Android Build QR Code Section -->
 
-            <!-- Expo iOS Build QR Code Section -->
-            {% if expo_ios_url and expo_ios_url.startswith('http') %}
+            <!-- iOS Build QR Code Section -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
               <h2 class="text-2xl font-bold text-gray-800 mb-2">
                 <i class="fab fa-apple mr-2 text-gray-800"></i>
@@ -54,35 +53,22 @@
               </h2>
               <p class="text-gray-600 mb-4">Scan to install the latest preview build on your iOS device:</p>
               <div class="mb-4">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ expo_ios_url|urlencode }}" 
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https%3A//expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" 
                      alt="Expo iOS Build QR Code" 
                      class="qr-code-image" 
                      style="width:200px;height:200px;"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                 <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666;">
                   QR Code unavailable<br>
-                  <a href="{{ expo_ios_url }}" target="_blank" class="text-blue-600 underline">Click to download</a>
+                  <a href="https://expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" target="_blank" class="text-blue-600 underline">Click to download</a>
                 </div>
               </div>
-              <a href="{{ expo_ios_url }}" target="_blank" class="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors font-semibold">
+              <a href="https://expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" target="_blank" class="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors font-semibold">
                 <i class="fas fa-download mr-2"></i>Download iOS Build
               </a>
-              <p class="text-xs text-gray-500 mt-2">URL: {{ expo_ios_url[:50] }}...</p>
+              <p class="text-xs text-gray-500 mt-2">URL: https://expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa</p>
             </div>
-            {% else %}
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 flex flex-col items-center">
-              <h2 class="text-2xl font-bold text-gray-800 mb-2">
-                <i class="fab fa-apple mr-2 text-gray-800"></i>
-                Latest iPhone App Build
-              </h2>
-              {% if expo_ios_error %}
-                <p class="text-red-600 font-semibold mb-2">{{ expo_ios_error }}</p>
-              {% endif %}
-              <p class="text-gray-600">No iOS build available yet.</p>
-              <p class="text-sm text-gray-500 mt-2">Make sure EXPO_TOKEN is set in your environment variables.</p>
-            </div>
-            {% endif %}
-            <!-- End Expo iOS Build QR Code Section -->
+            <!-- End iOS Build QR Code Section -->
 
             <!-- Stats Cards -->
             <div class="grid md:grid-cols-3 gap-6 mb-8">
