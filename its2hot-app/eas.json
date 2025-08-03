@@ -17,7 +17,12 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "distribution": "store"
+      }
     }
   },
   "submit": {

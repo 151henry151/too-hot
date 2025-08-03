@@ -88,4 +88,9 @@ instance/
 *.sqlite
 *.sqlite3
 
+# Build artifacts
+*.ipa
+*.apk
+*.aab
+
 app-example 

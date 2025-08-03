@@ -1527,6 +1527,11 @@ def get_cloud_scheduler_job_info(job_name):
                 print(f"❌ Error getting project ID from metadata: {e}")
                 pass
         
+        # Fallback to hardcoded project ID if we can't determine it
+        if not project_id:
+            project_id = 'romp-family-enterprises'  # Your GCP project ID
+            print(f"⚠️ Using fallback project ID: {project_id}")
+        
         if not project_id:
             print(f"❌ Could not determine Google Cloud project ID for job {job_name}")
             return None
@@ -1910,8 +1915,30 @@ def test_temperature_alert():
             return jsonify({'success': False, 'error': 'Failed to fetch forecasted weather'}), 500
         forecast_data = forecast_response.json()
         current_temp = forecast_data['forecast']['forecastday'][0]['day']['maxtemp_f']
+        
+        # Get historical average temperature for this location and date
         today = datetime.now()
-        avg_temp = 85
+        historical_url = f"{WEATHER_BASE_URL}/history.json"
+        historical_params = {
+            'key': WEATHER_API_KEY, 
+            'q': location, 
+            'dt': today.strftime('%Y-%m-%d'),
+            'aqi': 'no'
+        }
+        
+        try:
+            historical_response = requests.get(historical_url, params=historical_params)
+            if historical_response.status_code == 200:
+                historical_data = historical_response.json()
+                # Get the average temperature from historical data
+                avg_temp = historical_data['forecast']['forecastday'][0]['day']['avgtemp_f']
+            else:
+                # Fallback to a reasonable average for testing
+                avg_temp = 75
+        except Exception as e:
+            print(f"Warning: Could not fetch historical data for {location}: {e}")
+            # Fallback to a reasonable average for testing
+            avg_temp = 75
     else:
         current_temp = data.get('current_temp', 100)
         avg_temp = data.get('avg_temp', 85)
@@ -2049,6 +2076,8 @@ def scheduler_health():
             now = datetime.now()
             diff_seconds = (now - last_check).total_seconds()
             print(f"🔍 Scheduler health debug: last_check={last_check}, now={now}, diff_seconds={diff_seconds}")
+        else:
+            print("🔍 Scheduler health debug: No recent logs found")
         
         # Get actual Cloud Scheduler job information
         job_name = None
@@ -2127,6 +2156,11 @@ def scheduler_health():
                         next_check_time = datetime.combine(tomorrow, datetime.min.time().replace(hour=8))
                         next_check_info = f"Next check: {next_check_time.strftime('%I:%M %p')} tomorrow"
         
+        # Debug: Print all recent logs for troubleshooting
+        print(f"🔍 Scheduler health debug: Found {len(recent_logs)} recent logs")
+        for i, log in enumerate(recent_logs):
+            print(f"  Log {i+1}: {log.timestamp} - {log.trigger_type} - {log.status}")
+        
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
@@ -2137,7 +2171,8 @@ def scheduler_health():
             'next_check_info': next_check_info,
             'threshold': TEMP_THRESHOLD,
             'frequency': CHECK_FREQUENCY,
-            'active_job': active_job
+            'active_job': active_job,
+            'debug_logs_count': len(recent_logs)
         })
     except Exception as e:
         # Log the error
@@ -2182,6 +2217,11 @@ def scheduler_job_control():
                     project_id = metadata_response.text
             except:
                 pass
+        
+        # Fallback to hardcoded project ID if we can't determine it
+        if not project_id:
+            project_id = 'romp-family-enterprises'  # Your GCP project ID
+            print(f"⚠️ Using fallback project ID: {project_id}")
         
         if not project_id:
             error_msg = "Could not determine Google Cloud project ID"
