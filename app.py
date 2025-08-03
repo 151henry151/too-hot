@@ -1410,7 +1410,7 @@ def admin_dashboard():
         SchedulerLog.alerts_triggered > 0
     ).scalar() or 0
     
-    return render_template('admin.html',
+    return render_template('admin_new.html',
         email_subs=email_subs,
         notif_log=notif_log,
         trigger_log=trigger_log,

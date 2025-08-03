@@ -1,0 +1,131 @@
+<!-- Notifications Component -->
+<div class="tab-content hidden" id="notifications-tab">
+    <!-- Test Notifications -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-vial mr-2 text-yellow-600"></i>
+            Test Notifications
+        </h2>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Test Email -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Test Email</h3>
+                <button id="test-email-btn" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-envelope mr-2"></i>Send Test Email
+                </button>
+                <div id="test-email-result" class="mt-2 text-sm hidden"></div>
+            </div>
+
+            <!-- Test Push -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Test Push</h3>
+                <div class="space-y-2 mb-3">
+                    <input type="text" id="test-push-title" placeholder="Title" class="w-full px-2 py-1 border rounded text-sm" value="Test Notification">
+                    <input type="text" id="test-push-body" placeholder="Body" class="w-full px-2 py-1 border rounded text-sm" value="This is a test push notification.">
+                </div>
+                <button id="test-push-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-bell mr-2"></i>Send Test Push
+                </button>
+                <div id="test-push-result" class="mt-2 text-sm hidden"></div>
+            </div>
+
+            <!-- Test Temperature Alert -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Test Temperature Alert</h3>
+                <div class="space-y-2 mb-3">
+                    <input type="text" id="test-alert-location" placeholder="Location" class="w-full px-2 py-1 border rounded text-sm" value="New York">
+                    <div class="flex space-x-2">
+                        <input type="number" id="test-alert-current" placeholder="Current °F" class="w-1/2 px-2 py-1 border rounded text-sm">
+                        <input type="number" id="test-alert-avg" placeholder="Avg °F" class="w-1/2 px-2 py-1 border rounded text-sm">
+                    </div>
+                    <label class="flex items-center text-sm">
+                        <input type="checkbox" id="test-alert-real-data" class="mr-2"> Use Real Data
+                    </label>
+                </div>
+                <button id="test-alert-btn" class="w-full bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors">
+                    <i class="fas fa-thermometer-half mr-2"></i>Test Alert
+                </button>
+                <div id="test-alert-result" class="mt-2 text-sm hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscriber Management -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-users mr-2 text-blue-600"></i>
+            Subscriber Management
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Email Subscribers -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Email Subscribers</h3>
+                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    {% if email_subs and email_subs|length > 0 %}
+                    <div class="space-y-2">
+                        {% for sub in email_subs %}
+                        <div class="flex items-center justify-between bg-white p-2 rounded border">
+                            <div class="flex-1">
+                                <div class="text-sm font-medium">{{ sub.email }}</div>
+                                <div class="text-xs text-gray-500">{{ sub.location }}</div>
+                            </div>
+                            <div class="flex space-x-1">
+                                <button onclick="resendWelcomeEmail('{{ sub.email }}', '{{ sub.location }}')" 
+                                        class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700" 
+                                        title="Resend Welcome Email">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                <button onclick="deleteSubscriber('{{ sub.email }}')" 
+                                        class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700" 
+                                        title="Delete Subscriber">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center">No email subscribers yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Push Subscribers -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Push Subscribers</h3>
+                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <div id="push-subscribers-list">
+                        <p class="text-gray-500 text-center">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification History -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-history mr-2 text-purple-600"></i>
+            Notification History
+        </h2>
+        
+        <div class="flex items-center space-x-4 mb-4">
+            <label class="font-semibold text-sm">Filter by:</label>
+            <select id="notification-filter" class="border rounded px-3 py-1 text-sm">
+                <option value="all">All Notifications</option>
+                <option value="email">Email Only</option>
+                <option value="push">Push Only</option>
+                <option value="temperature">Temperature Alerts</option>
+            </select>
+            <button id="refresh-notifications" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">
+                <i class="fas fa-sync-alt mr-1"></i>Refresh
+            </button>
+        </div>
+        
+        <div id="notification-history" class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+            <p class="text-gray-500 text-center">Loading notification history...</p>
+        </div>
+    </div>
+</div> 
