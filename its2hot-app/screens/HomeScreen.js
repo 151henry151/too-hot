@@ -160,6 +160,11 @@ export default function HomeScreen({ navigation }) {
     return await withLoading(LOADING_KEYS.NOTIFICATION_UNSUBSCRIBE, async () => {
       logger.info('Disabling notifications', 'Notifications');
       
+      // Get the push token first for proper unregistration
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: 'cd9501a1-6d26-4451-ab0a-54631514d4fe',
+      });
+
       // Unregister from backend
       const response = await fetch('https://its2hot.org/api/unregister-device', {
         method: 'POST',
@@ -167,7 +172,8 @@ export default function HomeScreen({ navigation }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          platform: Platform.OS,
+          push_token: token.data,
+          platform: 'expo',
           device_type: Platform.OS === 'ios' ? 'ios' : 'android',
         }),
       });
