@@ -1,0 +1,156 @@
+<!-- Development Component -->
+<div class="tab-content hidden" id="development-tab">
+    <!-- App Builds -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-mobile-alt mr-2 text-blue-600"></i>
+            App Builds
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Android Build -->
+            <div class="bg-gray-50 rounded-lg p-6 text-center">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">
+                    <i class="fab fa-android mr-2 text-green-600"></i>
+                    Android Build
+                </h3>
+                <div class="mb-4">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A//expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" 
+                         alt="Android QR Code" 
+                         class="mx-auto border-2 border-gray-200 rounded-lg"
+                         style="width:200px;height:200px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666; margin:0 auto;">
+                        QR Code unavailable<br>
+                        <a href="https://expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" target="_blank" class="text-blue-600 underline">Click to download</a>
+                    </div>
+                </div>
+                <a href="https://expo.dev/accounts/romp/projects/its2hot-app/builds/be9b48a1-3ce2-4ebe-87be-b7b458cc8cb6" 
+                   target="_blank" 
+                   class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors font-semibold inline-block">
+                    <i class="fas fa-download mr-2"></i>Download APK
+                </a>
+                <p class="text-xs text-gray-500 mt-2">Latest Android build</p>
+            </div>
+
+            <!-- iOS Build -->
+            <div class="bg-gray-50 rounded-lg p-6 text-center">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">
+                    <i class="fab fa-apple mr-2 text-gray-800"></i>
+                    iOS Build
+                </h3>
+                <div class="mb-4">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A//expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" 
+                         alt="iOS QR Code" 
+                         class="mx-auto border-2 border-gray-200 rounded-lg"
+                         style="width:200px;height:200px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="qr-fallback" style="display:none; width:200px; height:200px; background:#f0f0f0; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; color:#666; margin:0 auto;">
+                        QR Code unavailable<br>
+                        <a href="https://expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" target="_blank" class="text-blue-600 underline">Click to download</a>
+                    </div>
+                </div>
+                <a href="https://expo.dev/artifacts/eas/nVGjtW2LHSgTLK36pWVFZN.ipa" 
+                   target="_blank" 
+                   class="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors font-semibold inline-block">
+                    <i class="fas fa-download mr-2"></i>Download iOS Build
+                </a>
+                <p class="text-xs text-gray-500 mt-2">Latest iOS build</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Updates -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-download mr-2 text-orange-600"></i>
+            App Updates
+        </h2>
+        
+        <div class="mb-6">
+            <p class="text-gray-600 mb-4">
+                Manage over-the-air updates for the mobile app. Updates can be pushed to users without requiring app store approval.
+            </p>
+            
+            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Update Type</label>
+                    <select id="update-type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="regular">Regular Update</option>
+                        <option value="critical">Critical Update (Security/Bug Fix)</option>
+                        <option value="urgent">Urgent Update</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Update Channel</label>
+                    <select id="update-channel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="production">Production</option>
+                        <option value="staging">Staging</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button id="check-updates" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Check for Updates
+                </button>
+                <button id="publish-update" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-upload mr-2"></i>
+                    Publish Update
+                </button>
+                <button id="rollback-update" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
+                    <i class="fas fa-undo mr-2"></i>
+                    Rollback Update
+                </button>
+            </div>
+        </div>
+        
+        <div id="update-status" class="hidden mt-4 p-4 rounded-md"></div>
+    </div>
+
+    <!-- Debug Tools -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-tools mr-2 text-yellow-600"></i>
+            Debug Tools
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Database Tools</h3>
+                <div class="space-y-2">
+                    <button id="migrate-db" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-left">
+                        <i class="fas fa-database mr-2"></i>Migrate Database
+                    </button>
+                    <button id="clear-cache" class="w-full bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors text-left">
+                        <i class="fas fa-broom mr-2"></i>Clear Commit Cache
+                    </button>
+                    <button id="export-data" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-left">
+                        <i class="fas fa-download mr-2"></i>Export Data
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">System Tools</h3>
+                <div class="space-y-2">
+                    <button id="test-printful" class="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-left">
+                        <i class="fas fa-tshirt mr-2"></i>Test Printful API
+                    </button>
+                    <button id="test-weather" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-left">
+                        <i class="fas fa-cloud mr-2"></i>Test Weather API
+                    </button>
+                    <button id="test-push" class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors text-left">
+                        <i class="fas fa-bell mr-2"></i>Test Push Service
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="debug-results" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+            <h4 class="font-semibold mb-2">Debug Results:</h4>
+            <div id="debug-output" class="text-sm"></div>
+        </div>
+    </div>
+</div> 

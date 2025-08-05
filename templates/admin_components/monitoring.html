@@ -1,0 +1,144 @@
+<!-- Monitoring Component -->
+<div class="tab-content hidden" id="monitoring-tab">
+    <!-- System Logs -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
+            System Logs
+        </h2>
+        
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-4">
+                <label class="font-semibold text-sm">Log Type:</label>
+                <select id="log-type" class="border rounded px-3 py-1 text-sm">
+                    <option value="scheduler">Scheduler Logs</option>
+                    <option value="push">Push Notifications</option>
+                    <option value="debug">Debug/Error</option>
+                    <option value="mobile">Mobile Logs</option>
+                </select>
+                <button id="refresh-logs" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">
+                    <i class="fas fa-sync-alt mr-1"></i>Refresh
+                </button>
+            </div>
+            <div class="flex items-center space-x-2">
+                <label class="text-sm">Auto-refresh:</label>
+                <input type="checkbox" id="auto-refresh-logs" class="mr-2">
+                <span class="text-xs text-gray-500">Every 30s</span>
+            </div>
+        </div>
+        
+        <div id="logs-list" class="max-h-96 overflow-y-auto text-sm bg-gray-50 rounded p-4 border"></div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-chart-line mr-2 text-green-600"></i>
+            Performance Metrics
+        </h2>
+        
+        <div class="grid md:grid-cols-4 gap-6">
+            <div class="bg-blue-50 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="p-2 rounded-full bg-blue-100 text-blue-600">
+                        <i class="fas fa-bell text-lg"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-gray-600">Notifications Sent</p>
+                        <p class="text-xl font-bold text-blue-600" id="notifications-sent">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-green-50 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="p-2 rounded-full bg-green-100 text-green-600">
+                        <i class="fas fa-clock text-lg"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-gray-600">Avg Response Time</p>
+                        <p class="text-xl font-bold text-green-600" id="avg-response-time">~200ms</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-purple-50 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="p-2 rounded-full bg-purple-100 text-purple-600">
+                        <i class="fas fa-thermometer-half text-lg"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-gray-600">Temperature Checks</p>
+                        <p class="text-xl font-bold text-purple-600" id="temp-checks">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="p-2 rounded-full bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-exclamation-triangle text-lg"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-gray-600">Errors (24h)</p>
+                        <p class="text-xl font-bold text-yellow-600" id="error-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Monitoring -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-eye mr-2 text-red-600"></i>
+            Real-time Monitoring
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Active Services</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-sm font-medium">Flask Application</span>
+                        </div>
+                        <span class="text-xs text-green-600">Online</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-sm font-medium">Database</span>
+                        </div>
+                        <span class="text-xs text-green-600">Connected</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-sm font-medium">Weather API</span>
+                        </div>
+                        <span class="text-xs text-green-600">Responding</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-sm font-medium">Push Service</span>
+                        </div>
+                        <span class="text-xs text-green-600">Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Recent Activity</h3>
+                <div id="recent-activity" class="space-y-2 max-h-48 overflow-y-auto">
+                    <div class="text-sm text-gray-500 text-center">Loading recent activity...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
