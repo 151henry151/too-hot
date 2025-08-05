@@ -2391,7 +2391,9 @@ def time_tracking():
                     else:
                         delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
                         if delta >= 120:
-                            time_spent = min(lines_changed * 3 if lines_changed else 120, 180)
+                            # Random cap between 2-3 hours for sessions without definitive start time
+                            random_cap = random.randint(120, 180)
+                            time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
                         else:
                             time_spent = min(max(int(delta), 0), 120)
                     
@@ -2412,7 +2414,9 @@ def time_tracking():
                 else:
                     delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
                     if delta >= 120:
-                        time_spent = min(lines_changed * 3 if lines_changed else 120, 180)
+                        # Random cap between 2-3 hours for sessions without definitive start time
+                        random_cap = random.randint(120, 180)
+                        time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
                     else:
                         time_spent = min(max(int(delta), 0), 120)
             
@@ -2451,7 +2455,9 @@ def time_tracking():
                         else:
                             delta = (c['datetime'] - commits[index+1]['datetime']).total_seconds() / 60
                             if delta >= 120:
-                                time_spent = min(lines_changed * 3, 180)
+                                # Random cap between 2-3 hours for sessions without definitive start time
+                                random_cap = random.randint(120, 180)
+                                time_spent = min(lines_changed * 1, random_cap)
                             else:
                                 time_spent = min(max(int(delta), 0), 120)
                         
