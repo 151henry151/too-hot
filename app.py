@@ -2381,26 +2381,25 @@ def time_tracking():
             existing_commit = CommitInfo.query.filter_by(commit_hash=commit_hash).first()
             
             if existing_commit:
-                # Use existing data
+                # Use existing data but recalculate time spent with new formula
                 lines_changed = existing_commit.lines_changed
-                time_spent = existing_commit.time_spent_minutes
-                if time_spent is None:
-                    # Calculate time spent if not stored
-                    if i == len(commits) - 1:
-                        time_spent = 190  # Special case for initial commit
+                
+                # Always recalculate time spent with new formula
+                if i == len(commits) - 1:
+                    time_spent = 190  # Special case for initial commit
+                else:
+                    delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
+                    if delta >= 120:
+                        # Random cap between 2-3 hours for sessions without definitive start time
+                        random_cap = random.randint(120, 180)
+                        time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
                     else:
-                        delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
-                        if delta >= 120:
-                            # Random cap between 2-3 hours for sessions without definitive start time
-                            random_cap = random.randint(120, 180)
-                            time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
-                        else:
-                            time_spent = min(max(int(delta), 0), 120)
-                    
-                    # Update the database with calculated time
-                    existing_commit.time_spent_minutes = time_spent
-                    existing_commit.last_updated = datetime.utcnow()
-                    db.session.commit()
+                        time_spent = min(max(int(delta), 0), 120)
+                
+                # Update the database with recalculated time
+                existing_commit.time_spent_minutes = time_spent
+                existing_commit.last_updated = datetime.utcnow()
+                db.session.commit()
             else:
                 # Need to fetch this commit's stats
                 commits_to_fetch.append((i, c))
@@ -2457,7 +2456,7 @@ def time_tracking():
                             if delta >= 120:
                                 # Random cap between 2-3 hours for sessions without definitive start time
                                 random_cap = random.randint(120, 180)
-                                time_spent = min(lines_changed * 1, random_cap)
+                                time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
                             else:
                                 time_spent = min(max(int(delta), 0), 120)
                         
