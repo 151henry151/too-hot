@@ -2523,6 +2523,20 @@ def github_headers():
 @app.route('/admin/time-tracking')
 @requires_auth
 def time_tracking():
+    """
+    Time tracking page that shows estimated time spent on each commit.
+    
+    IMPORTANT: Time estimates are calculated ONCE when a commit is first processed
+    and then stored permanently in the database. This ensures that:
+    1. Time estimates remain consistent across page refreshes
+    2. Random values used in calculations don't change every time
+    3. Historical data remains stable and reliable
+    
+    The system uses a combination of:
+    - Time between commits (when available)
+    - Lines of code changed
+    - Random caps for long sessions (calculated once and stored)
+    """
     now = time.time()
     # Use cache if available and not expired
     if github_cache['data'] and now - github_cache['timestamp'] < GITHUB_CACHE_TTL:
@@ -2595,25 +2609,10 @@ def time_tracking():
             existing_commit = CommitInfo.query.filter_by(commit_hash=commit_hash).first()
             
             if existing_commit:
-                # Use existing data but recalculate time spent with new formula
+                # Use existing data from database - don't recalculate
                 lines_changed = existing_commit.lines_changed
-                
-                # Always recalculate time spent with new formula
-                if i == len(commits) - 1:
-                    time_spent = 190  # Special case for initial commit
-                else:
-                    delta = (c['datetime'] - commits[i+1]['datetime']).total_seconds() / 60
-                    if delta >= 120:
-                        # Random cap between 2-3 hours for sessions without definitive start time
-                        random_cap = random.randint(120, 180)
-                        time_spent = min(lines_changed * 1 if lines_changed else 120, random_cap)
-                    else:
-                        time_spent = min(max(int(delta), 0), 120)
-                
-                # Update the database with recalculated time
-                existing_commit.time_spent_minutes = time_spent
-                existing_commit.last_updated = datetime.utcnow()
-                db.session.commit()
+                time_spent = existing_commit.time_spent_minutes
+                print(f'[DEBUG] Using cached data for commit {commit_hash[:7]}: {time_spent} minutes')
             else:
                 # Need to fetch this commit's stats
                 commits_to_fetch.append((i, c))
@@ -2621,6 +2620,8 @@ def time_tracking():
                 time_spent = None
             
             # Calculate time spent if not already calculated
+            # Note: Time estimates are calculated ONCE when a commit is first processed
+            # and then stored permanently in the database to ensure consistency
             if time_spent is None:
                 if i == len(commits) - 1:
                     time_spent = 190  # Special case for initial commit
@@ -2663,6 +2664,7 @@ def time_tracking():
                         lines_changed = additions + deletions
                         
                         # Calculate time spent
+                        # Note: This estimate is calculated ONCE and stored permanently
                         if index == len(commits) - 1:
                             time_spent = 190  # Special case for initial commit
                         else:
