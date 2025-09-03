@@ -18,6 +18,7 @@ import threading
 from sqlalchemy import and_
 import atexit
 import random
+import jwt
 
 load_dotenv()
 
@@ -63,6 +64,7 @@ app.config['MAIL_DEFAULT_SENDER'] = 'tendegrees@its2hot.org'
 print(f"DEBUG: MAIL_USERNAME = {os.getenv('MAIL_USERNAME', 'Not set')}")
 print(f"DEBUG: MAIL_PASSWORD = {os.getenv('MAIL_PASSWORD', 'Not set')[:4]}..." if os.getenv('MAIL_PASSWORD') else "DEBUG: MAIL_PASSWORD = None")
 print(f"DEBUG: WEATHER_API_KEY = {os.getenv('WEATHER_API_KEY', 'Not set')[:4]}..." if os.getenv('WEATHER_API_KEY') else "DEBUG: WEATHER_API_KEY = None")
+print(f"DEBUG: WEATHERKIT_ENABLED = {os.getenv('WEATHERKIT_ENABLED', 'Not set')}")
 
 mail = Mail(app)
 
@@ -229,6 +231,9 @@ with app.app_context():
 WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 WEATHER_BASE_URL = "http://api.weatherapi.com/v1"
 NWS_BASE_URL = "https://api.weather.gov"  # Free National Weather Service API
+
+# WeatherKit configuration for daily forecasts
+WEATHERKIT_ENABLED = os.getenv('WEATHERKIT_ENABLED', 'false').lower() == 'true'
 
 # Temperature threshold for climate alerts (configurable via admin)
 TEMP_THRESHOLD = int(os.getenv('TEMP_THRESHOLD', '1'))  # degrees Fahrenheit above average
@@ -1066,6 +1071,206 @@ def check_temperatures():
         'notifications_sent': len(notifications_sent),
         'threshold': TEMP_THRESHOLD,
         'details': notifications_sent
+    })
+
+def get_weatherkit_credentials():
+    """Get WeatherKit credentials from GCP Secret Manager"""
+    try:
+        from google.cloud import secretmanager
+        
+        client = secretmanager.SecretManagerServiceClient()
+        project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'romp-family-enterprises')
+        
+        secrets = {}
+        secret_names = ['weatherkit-key-id', 'weatherkit-team-id', 'weatherkit-service-id', 'weatherkit-private-key']
+        
+        for secret_name in secret_names:
+            name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            # Strip newlines that the GCP client adds
+            secrets[secret_name] = response.payload.data.decode("UTF-8").strip()
+        
+        return {
+            'key_id': secrets['weatherkit-key-id'],
+            'team_id': secrets['weatherkit-team-id'],
+            'service_id': secrets['weatherkit-service-id'],
+            'private_key': secrets['weatherkit-private-key']
+        }
+    except Exception as e:
+        print(f"❌ Error getting WeatherKit credentials from GCP: {e}")
+        return None
+
+def get_weatherkit_forecast(location, coordinates=None):
+    """Get daily forecast from Apple WeatherKit"""
+    try:
+        credentials = get_weatherkit_credentials()
+        if not credentials:
+            print("❌ WeatherKit credentials not available")
+            return None
+        
+        # Generate JWT token
+        import jwt
+        import base64
+        from datetime import datetime, timedelta
+        
+        # Decode private key
+        private_key = base64.b64decode(credentials['private_key']).decode('utf-8')
+        
+        # Create JWT payload
+        now = datetime.utcnow()
+        payload = {
+            'iss': credentials['team_id'],
+            'iat': int(now.timestamp()),
+            'exp': int((now + timedelta(hours=1)).timestamp()),
+            'sub': credentials['service_id']
+        }
+        
+        # Create JWT headers
+        headers = {
+            'kid': credentials['key_id'],
+            'alg': 'ES256',
+            'typ': 'JWT'
+        }
+        
+        # Generate JWT token
+        token = jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
+        
+        # Use coordinates if provided, otherwise use location name
+        if coordinates:
+            lat, lon = coordinates
+            weather_url = f"https://weatherkit.apple.com/v1/weather/en/{lat}/{lon}"
+        else:
+            # For location names, we'd need to geocode first
+            # For now, default to New York coordinates
+            weather_url = "https://weatherkit.apple.com/v1/weather/en/40.7128/-74.0060"
+        
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Accept': 'application/json',
+            'User-Agent': 'TooHotApp/1.0'
+        }
+        
+        response = requests.get(weather_url, headers=headers)
+        
+        if response.status_code == 200:
+            weather_data = response.json()
+            
+            # Extract daily forecast data
+            if 'forecastDaily' in weather_data and weather_data['forecastDaily']:
+                daily_forecast = weather_data['forecastDaily'][0]  # Today's forecast
+                
+                # Get high temperature (convert from Celsius to Fahrenheit if needed)
+                high_temp_c = daily_forecast.get('temperatureMax', 0)
+                high_temp_f = (high_temp_c * 9/5) + 32  # Convert C to F
+                
+                return {
+                    'location': location,
+                    'high_temp_f': round(high_temp_f, 1),
+                    'source': 'WeatherKit',
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                print(f"❌ No daily forecast data in WeatherKit response for {location}")
+                return None
+        else:
+            print(f"❌ WeatherKit API error for {location}: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Error getting WeatherKit forecast for {location}: {e}")
+        return None
+
+def check_temperatures_with_weatherkit():
+    """Check forecasted high temperatures using WeatherKit and send notifications if conditions are met"""
+    if not WEATHERKIT_ENABLED:
+        print("⚠️ WeatherKit not enabled, falling back to WeatherAPI.com")
+        return check_temperatures()
+    
+    notifications_sent = []
+    processed_locations = set()  # Track locations to avoid duplicate push notifications
+    
+    for subscriber in Subscriber.query.all():
+        try:
+            location = subscriber.location
+            if location == 'auto':
+                location = 'New York'
+            
+            # Get forecasted high temperature from WeatherKit
+            forecast_data = get_weatherkit_forecast(location)
+            if not forecast_data:
+                print(f"⚠️ WeatherKit failed for {location}, falling back to WeatherAPI.com")
+                # Fall back to the original function for this location
+                continue
+            
+            current_temp = forecast_data['high_temp_f']
+            print(f"✅ WeatherKit forecast for {location}: {current_temp}°F")
+            
+            # Get historical data for today's date (last 30 years) from WeatherAPI.com
+            today = datetime.now()
+            historical_url = f"{WEATHER_BASE_URL}/history.json"
+            
+            # Calculate average temperature from historical data
+            historical_temps = []
+            for year in range(1, 31):  # Last 30 years
+                try:
+                    historical_date = today.replace(year=today.year - year)
+                    historical_params = {
+                        'key': WEATHER_API_KEY,
+                        'q': location,
+                        'dt': historical_date.strftime('%Y-%m-%d')
+                    }
+                    historical_response = requests.get(historical_url, params=historical_params)
+                    
+                    if historical_response.status_code == 200:
+                        historical_data = historical_response.json()
+                        if 'forecast' in historical_data and historical_data['forecast']['forecastday']:
+                            historical_temp = historical_data['forecast']['forecastday'][0]['day']['maxtemp_f']
+                            historical_temps.append(historical_temp)
+                except Exception as e:
+                    print(f"Error fetching historical data for {location} year {year}: {e}")
+                    continue
+            
+            # Calculate average temperature
+            if historical_temps:
+                avg_temp = sum(historical_temps) / len(historical_temps)
+                print(f"{location}: Current temp {current_temp}°F, Avg temp {avg_temp:.1f}°F, Diff {current_temp - avg_temp:.1f}°F")
+            else:
+                # Fallback to hardcoded average if historical data fails
+                avg_temp = 85
+                print(f"{location}: Using fallback avg temp {avg_temp}°F")
+            
+            # Check if temperature exceeds threshold
+            if current_temp >= avg_temp + TEMP_THRESHOLD:
+                print(f"🌡️ TEMPERATURE ALERT: {location} is {current_temp - avg_temp:.1f}°F hotter than average!")
+                
+                # Send email notification
+                send_notification(subscriber.email, location, current_temp, avg_temp)
+                notifications_sent.append({
+                    'email': subscriber.email,
+                    'location': location,
+                    'current_temp': current_temp,
+                    'avg_temp': avg_temp,
+                    'threshold': TEMP_THRESHOLD,
+                    'source': 'WeatherKit'
+                })
+                
+                # Send push notification (only once per location)
+                if location not in processed_locations:
+                    send_push_notification(location, current_temp, avg_temp)
+                    processed_locations.add(location)
+            else:
+                print(f"No alert for {location}: {current_temp}°F vs {avg_temp:.1f}°F avg (threshold: {TEMP_THRESHOLD}°F)")
+                
+        except Exception as e:
+            print(f"Error processing subscriber {subscriber.email}: {e}")
+            continue
+    
+    return jsonify({
+        'message': f'Processed {len(Subscriber.query.all())} subscribers with WeatherKit',
+        'notifications_sent': len(notifications_sent),
+        'threshold': TEMP_THRESHOLD,
+        'details': notifications_sent,
+        'source': 'WeatherKit'
     })
 
 def send_notification(email, location, current_temp, avg_temp, years=30):
@@ -1973,8 +2178,16 @@ def scheduler_check_temperatures():
     try:
         print(f"🌡️ Scheduler triggered temperature check at {start_time}")
         
-        # Call the existing temperature check function
-        response = check_temperatures()
+        # Determine which weather service to use based on time
+        current_hour = start_time.hour
+        is_daily_check = current_hour == 8  # 8 AM daily check
+        
+        if is_daily_check and WEATHERKIT_ENABLED:
+            print("🌤️ Using WeatherKit for daily 8 AM temperature check")
+            response = check_temperatures_with_weatherkit()
+        else:
+            print("🌡️ Using WeatherAPI.com for temperature check")
+            response = check_temperatures()
         
         # Extract JSON data from the response
         if hasattr(response, 'get_json'):
@@ -2014,7 +2227,8 @@ def scheduler_check_temperatures():
             'success': True,
             'timestamp': start_time.isoformat(),
             'result': result,
-            'duration_ms': duration_ms
+            'duration_ms': duration_ms,
+            'weather_service': 'WeatherKit' if (is_daily_check and WEATHERKIT_ENABLED) else 'WeatherAPI.com'
         })
         
     except Exception as e:
@@ -3126,9 +3340,60 @@ def get_update_status():
             'error': f'Failed to get update status: {str(e)}'
         }), 500
 
+@app.route('/api/weatherkit/test', methods=['GET'])
+def test_weatherkit():
+    """Test WeatherKit integration"""
+    try:
+        if not WEATHERKIT_ENABLED:
+            return jsonify({
+                'success': False,
+                'error': 'WeatherKit is not enabled. Set WEATHERKIT_ENABLED=true in environment.',
+                'status': 'disabled'
+            }), 400
+        
+        # Test with New York location
+        location = 'New York'
+        forecast_data = get_weatherkit_forecast(location)
+        
+        if forecast_data:
+            return jsonify({
+                'success': True,
+                'message': 'WeatherKit integration test successful',
+                'data': forecast_data,
+                'status': 'working'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'WeatherKit forecast failed',
+                'status': 'error'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'WeatherKit test failed: {str(e)}',
+            'status': 'error'
+        }), 500
+
 if __name__ == '__main__':
     # Test Printful connection on startup
     print("🔍 Testing Printful API connection...")
     test_printful_connection()
+    
+    # Test WeatherKit configuration on startup
+    print("🔍 Testing WeatherKit configuration...")
+    if WEATHERKIT_ENABLED:
+        print("✅ WeatherKit is enabled")
+        try:
+            credentials = get_weatherkit_credentials()
+            if credentials:
+                print(f"✅ WeatherKit credentials available (Key ID: {credentials['key_id']})")
+            else:
+                print("⚠️ WeatherKit credentials not available")
+        except Exception as e:
+            print(f"⚠️ WeatherKit credentials test failed: {e}")
+    else:
+        print("ℹ️ WeatherKit is disabled (set WEATHERKIT_ENABLED=true to enable)")
     
     app.run(debug=True, host='0.0.0.0', port=5000) 
